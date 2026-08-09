@@ -1,0 +1,993 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acompañamiento a Campo — Nutribén CA</title>
+
+<style>
+:root{
+  --nb-marino:#0033A1; --nb-286-75:#3F58A7; --nb-medio:#6C8CC7;
+  --nb-cielo:#00A0DF; --nb-cielo-56:#8CC8ED; --nb-cielo-35:#BADDF4;
+  --nb-lavanda:#A9A5D1; --nb-menta:#7EC7BD; --nb-rosa:#E7B0D1; --nb-naranja:#FAA334;
+  --tinta:#0C1A33; --tinta-2:#4A5B78; --linea:#D9E2F0; --papel:#F4F7FC;
+  --verde:#2E8B72; --rojo:#B0264A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);
+  font-family:"Segoe UI",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+
+header.top{background:var(--nb-marino);color:#fff;padding:14px 22px;display:flex;
+  align-items:center;gap:18px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+header.top .marca{font-size:19px;font-weight:700;letter-spacing:-.02em}
+header.top .marca span{color:var(--nb-cielo-56);font-weight:400}
+.tabs{display:flex;gap:4px;margin-left:auto}
+.tabs button{background:rgba(255,255,255,.1);color:#fff;border:0;padding:8px 15px;border-radius:99px;font-size:13.5px}
+.tabs button.on{background:var(--nb-cielo);font-weight:600}
+.wrap{max-width:1180px;margin:0 auto;padding:22px}
+.vista{display:none} .vista.on{display:block}
+
+.card{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:20px;margin-bottom:16px}
+.card > h2{font-size:16px;color:var(--nb-marino);margin-bottom:4px}
+.sub{color:var(--tinta-2);font-size:13.5px}
+
+label.f{display:block;font-size:12px;font-weight:650;color:var(--tinta-2);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+input[type=text],input[type=date],input[type=number],select,textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--linea);border-radius:7px;background:#fff}
+textarea{resize:vertical;min-height:70px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--nb-cielo);outline-offset:1px;border-color:transparent}
+.grid{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:800px){.g3,.g4{grid-template-columns:1fr}}
+
+.btn{background:var(--nb-marino);color:#fff;border:0;padding:10px 20px;border-radius:8px;font-weight:600}
+.btn.sec{background:#fff;color:var(--nb-marino);border:1.5px solid var(--nb-marino)}
+.btn.gh{background:transparent;color:var(--tinta-2);border:1px solid var(--linea)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.fila-btn{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* barra de visitas de la jornada */
+.jbar{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:12px 14px;margin-bottom:16px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:66px;z-index:40}
+.jbar .vtab{border:1px solid var(--linea);background:#fff;border-radius:8px;padding:7px 13px;font-size:13px;color:var(--tinta-2)}
+.jbar .vtab.on{background:var(--nb-marino);border-color:var(--nb-marino);color:#fff;font-weight:650}
+.jbar .vtab .pc{display:block;font-size:10.5px;opacity:.75}
+.jbar .vtab.lista{border-color:var(--nb-menta)}
+.contador{margin-left:auto;font-size:13px;color:var(--tinta-2)}
+.contador b{color:var(--nb-marino)}
+.contador.falta b{color:var(--nb-naranja)}
+
+.dimhead{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--nb-cielo-35);
+  padding-bottom:9px;margin-bottom:16px;flex-wrap:wrap}
+.dimhead .cod{font-size:26px;font-weight:800;color:var(--nb-cielo-56);line-height:1}
+.dimhead h3{font-size:17px;color:var(--nb-marino)}
+.peso{margin-left:auto;font-size:12px;background:var(--nb-cielo-35);color:var(--nb-marino);
+  padding:3px 10px;border-radius:99px;font-weight:650}
+
+.item{border:1px solid var(--linea);border-radius:10px;padding:15px;margin-bottom:12px;background:#fff}
+.item.crit{border-left:4px solid var(--nb-naranja)}
+.item .q{font-weight:600;margin-bottom:3px}
+.item .obs{font-size:12.5px;color:var(--tinta-2);margin-bottom:11px}
+.escala{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.escala button{border:1px solid var(--linea);background:#fff;border-radius:8px;padding:9px 6px;
+  text-align:left;font-size:11.5px;color:var(--tinta-2);line-height:1.32;min-height:80px}
+.escala button b{display:block;font-size:15px;color:var(--tinta);margin-bottom:3px}
+.escala button:hover{border-color:var(--nb-medio)}
+.escala button.on{background:var(--nb-marino);border-color:var(--nb-marino);color:#E4EDFB}
+.escala button.on b{color:#fff}
+.escala button.na{min-height:auto}
+@media(max-width:900px){.escala{grid-template-columns:1fr 1fr}.escala button{min-height:auto}}
+.frec{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center}
+.frec .et{font-size:11px;font-weight:650;color:var(--tinta-2);text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+.frec button{border:1px solid var(--linea);background:#fff;border-radius:99px;padding:5px 13px;font-size:12.5px;color:var(--tinta-2)}
+.frec button.on{background:var(--nb-286-75);border-color:var(--nb-286-75);color:#fff;font-weight:650}
+.frec button.on[data-f="inconsistente"]{background:var(--nb-naranja);border-color:var(--nb-naranja);color:#3B2600}
+.frec button.on[data-f="no"]{background:var(--nb-rosa);border-color:var(--nb-rosa);color:#4A0F28}
+.medfila{display:grid;grid-template-columns:1.6fr 1.2fr .9fr auto;gap:10px;margin-bottom:9px;align-items:center}
+@media(max-width:800px){.medfila{grid-template-columns:1fr}}
+.notaitem{margin-top:9px}
+.notaitem input{border-style:dashed;font-size:13.5px}
+.previas{font-size:11.5px;color:var(--tinta-2);margin-top:7px}
+.previas b{color:var(--nb-marino)}
+
+.layout{display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.rail{position:sticky;top:140px;background:#fff;border:1px solid var(--linea);border-radius:10px;padding:12px}
+.rail button{width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;
+  border-radius:7px;font-size:13.5px;color:var(--tinta-2);display:flex;gap:9px;align-items:center}
+.rail button.on{background:var(--nb-cielo-35);color:var(--nb-marino);font-weight:650}
+.rail .dot{width:8px;height:8px;border-radius:50%;background:var(--linea);flex:none}
+.rail .dot.full{background:var(--nb-menta)} .rail .dot.part{background:var(--nb-naranja)}
+.rail .avance{font-size:11.5px;color:var(--tinta-2);padding:9px 10px 3px;border-top:1px solid var(--linea);margin-top:8px}
+
+.marcador{display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  background:linear-gradient(100deg,var(--nb-marino),var(--nb-286-75));color:#fff;
+  border-radius:10px;padding:20px 24px;margin-bottom:16px}
+.marcador .big{font-size:46px;font-weight:800;line-height:1;letter-spacing:-.03em}
+.marcador .of{font-size:15px;opacity:.6}
+.tier{padding:5px 14px;border-radius:99px;font-weight:700;font-size:13px;color:#0C1A33}
+.t1{background:var(--nb-menta)} .t2{background:var(--nb-cielo-56)}
+.t3{background:var(--nb-naranja)} .t4{background:var(--nb-rosa)}
+
+.barra{display:grid;grid-template-columns:190px 1fr 46px;gap:12px;align-items:center;margin-bottom:9px;font-size:13.5px}
+.barra .pista{background:var(--papel);border-radius:99px;height:19px;overflow:hidden;position:relative}
+.barra .fill{height:100%;border-radius:99px;background:var(--nb-cielo)}
+.barra .rango{position:absolute;top:0;height:100%;background:var(--nb-cielo-35);opacity:.75}
+.barra .val{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.barra small{color:var(--tinta-2)}
+
+.reto{border:1px solid var(--linea);border-left:4px solid var(--nb-naranja);border-radius:10px;
+  padding:15px 17px;margin-bottom:11px;background:#fff}
+.reto .et{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#C97E10;font-weight:700}
+.reto h4{margin:3px 0 6px;font-size:15px;color:var(--nb-marino)}
+.reto p{margin:0 0 8px;font-size:13.5px;color:var(--tinta-2)}
+.reto .med{font-size:12.5px;background:var(--papel);padding:7px 10px;border-radius:7px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--linea);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2)}
+td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
+
+.aviso{background:#FFF6E8;border:1px solid var(--nb-naranja);border-radius:10px;padding:12px 15px;font-size:13.5px;margin-bottom:16px}
+.aviso.rojo{background:#FDEEF2;border-color:var(--nb-rosa)}
+.aviso.verde{background:#EDF7F4;border-color:var(--nb-menta)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:99px;background:var(--nb-cielo-35);color:var(--nb-marino);font-weight:650}
+.pill.sis{background:#FDEEF2;color:#8E1E3C} .pill.err{background:#FFF1DC;color:#9A5C05}
+.firma{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:34px}
+.firma div{border-top:1px solid var(--tinta);padding-top:7px;font-size:12.5px;color:var(--tinta-2)}
+
+@media print{
+  @page{size:letter portrait;margin:14mm 13mm}
+  header.top,.tabs,.rail,.fila-btn,.jbar,.no-print{display:none !important}
+  body{background:#fff;font-size:10.5pt}
+  .wrap{max-width:none;padding:0}
+  .card{border:0;border-top:1.5px solid var(--linea);border-radius:0;padding:12px 0;margin:0;break-inside:avoid}
+  .card:first-child{border-top:0}
+  .marcador{background:#fff !important;color:var(--tinta) !important;border:2px solid var(--nb-marino);padding:14px 16px}
+  .marcador .of{color:var(--tinta-2)}
+  .tier,.pill,.barra .fill,.barra .rango,.aviso{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .reto,.barra,tr{break-inside:avoid}
+  .solo-print{display:block !important}
+}
+.solo-print{display:none}
+</style>
+
+<header class="top">
+  <div class="marca">Acompañamiento a Campo <span>· Nutribén CA</span></div>
+  <nav class="tabs">
+    <button data-v="nueva" class="on">Jornada</button>
+    <button data-v="hist">Historial</button>
+    <button data-v="guia">Método</button>
+  </nav>
+</header>
+
+<div class="wrap">
+
+<section class="vista on" id="v-nueva">
+  <div id="paso-acceso">
+    <div class="card" style="max-width:430px;margin:40px auto">
+      <h2>Código de gerencia</h2>
+      <p class="sub">Un solo código para el equipo gerencial. Se pide una vez por sesión.</p>
+      <div style="margin-top:16px"><label class="f">Código</label><input type="password" id="a_cod" autocomplete="off"></div>
+      <div class="fila-btn" style="margin-top:16px">
+        <button class="btn" id="b-entrar">Entrar</button>
+        <span class="sub" id="acc-error" style="color:var(--rojo)"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="paso-cab" style="display:none">
+    <div class="card">
+      <h2>Nueva jornada de acompañamiento</h2>
+      <p class="sub">Una jornada es un día completo con el mismo visitador. Se requieren <b>4 visitas consecutivas como mínimo</b> antes de poder generar la sesión de feedback.</p>
+      <div class="grid g3" style="margin-top:16px">
+        <div><label class="f">Visitador acompañado</label>
+          <select id="c_mr"><option value="">Seleccionar…</option></select></div>
+        <div><label class="f">Gerente de Distrito</label><input type="text" id="c_eval" placeholder="Nombre"></div>
+        <div><label class="f">Fecha</label><input type="date" id="c_fecha"></div>
+        <div><label class="f">País</label>
+          <select id="c_pais"><option>Honduras</option><option>El Salvador</option><option>Nicaragua</option><option>Costa Rica</option></select></div>
+        <div><label class="f">Ciudad / zona</label><input type="text" id="c_ciudad"></div>
+        <div><label class="f">Ciclo</label><input type="text" id="c_ciclo" placeholder="Ej. Ciclo 4 · 2026"></div>
+        <div><label class="f">Tipo de acompañamiento</label>
+          <select id="c_tipo"><option>Coaching de desarrollo</option><option>Evaluación formal de ciclo</option><option>Inducción / entrenamiento</option><option>Plan de mejora</option></select></div>
+      </div>
+      <div class="fila-btn" style="margin-top:18px">
+        <button class="btn" id="b-empezar">Abrir jornada</button>
+        <span class="sub" id="cab-error" style="color:var(--rojo)"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="paso-inst" style="display:none">
+    <div class="card" id="panel-medicos"></div>
+    <div class="aviso" id="banner-metodo">
+      <b>Una sola evaluación para toda la jornada.</b> No califiques la última visita ni el promedio mental de las cuatro:
+      califica el <b>patrón</b> que observaste durante el día. Para cada conducta indica el nivel y con qué frecuencia la sostuvo.
+    </div>
+    <div class="layout">
+      <aside class="rail" id="rail"></aside>
+      <div id="dim-cont"></div>
+    </div>
+  </div>
+
+  <div id="paso-cierre" style="display:none">
+    <div class="card">
+      <h2>Sesión de feedback</h2>
+      <p class="sub">Sobre la tendencia de la jornada completa, no sobre la última visita — que es la que más pesa en la memoria y la que menos representa.</p>
+      <div style="margin-top:16px">
+        <label class="f">El patrón más sólido de la jornada</label>
+        <textarea id="q_fuerte" placeholder="Ej.: en las cuatro visitas retomó el compromiso anterior antes de argumentar."></textarea></div>
+      <div style="margin-top:14px">
+        <label class="f">La única conducta a cambiar en el próximo ciclo</label>
+        <textarea id="q_mejora" placeholder="Una sola. Si escribes tres, no cambia ninguna."></textarea></div>
+      <div style="margin-top:14px">
+        <label class="f">Compromisos obtenidos en la jornada</label>
+        <textarea id="q_compromiso" placeholder="Cuántos de los N médicos dejaron compromiso medible, y cuáles."></textarea></div>
+      <div class="fila-btn" style="margin-top:18px">
+        <button class="btn" id="b-calcular">Cerrar jornada y ver tendencias</button>
+        <button class="btn gh" id="b-regresar">Volver a las visitas</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="paso-res" style="display:none"></div>
+</section>
+
+<section class="vista" id="v-hist">
+  <div class="card">
+    <h2>Registro histórico</h2>
+    <p class="sub">Expediente de Casa Ferne. Se conserva aunque cambie el gerente de distrito.</p>
+    <div class="fila-btn" style="margin-top:14px">
+      <label class="f" style="margin:0;align-self:center">Visitador</label>
+      <select id="h_mr" style="width:auto;min-width:220px"><option value="">Todo el equipo</option></select>
+      <button class="btn sec" id="b-recargar">Actualizar</button>
+      <button class="btn gh" id="b-csv">Exportar CSV</button>
+      <span class="sub" id="hist-msg"></span>
+    </div>
+  </div>
+  <div id="hist-cont"></div>
+</section>
+
+<section class="vista" id="v-guia"></section>
+</div>
+
+<script>
+const EQUIPO = ['Ricardo Flores','Kristel Madrid','Fernando Cruz','Osman Carbajal','Elsy Valencia','Fernando Urrutia'];
+const MIN_VISITAS = 4;
+
+const DIMS = [
+{cod:'A', nom:'Planificación y lectura del Close Up', peso:20,
+ desc:'Lo que ya estaba hecho antes de tocar la puerta. El Close Up (auditoría de recetas) es el insumo: sin leerlo no hay forma de construir un objetivo sobre lo que el médico realmente prescribe hoy.',
+ items:[
+ {id:'A1', q:'Lee la auditoría Close Up del médico antes de la visita', crit:true, obs:'Qué prescribe hoy, en qué volumen, participación de Nutribén frente a la competencia y hacia dónde se mueve la tendencia.',
+  a:['No consulta el Close Up','Lo abrió pero no sabe qué prescribe el médico','Conoce el dato grueso: si receta o no receta','Conoce volumen, participación y competidor principal','Conoce el dato, la tendencia de los últimos ciclos y detecta de qué molécula o marca puede desplazar']},
+ {id:'A2', q:'Construye el objetivo sobre el dato del Close Up', crit:true, obs:'El objetivo nace de lo que el médico ya usa: desplazar una marca concreta, subir de X a Y recetas, o abrir un segmento donde hoy no prescribe.',
+  a:['No hay objetivo; "vengo a saludar"','Objetivo genérico, sin relación con lo que prescribe','Objetivo claro pero desconectado del dato de auditoría','Objetivo derivado del Close Up: producto a desplazar y meta numérica','Objetivo derivado del Close Up, medible, con plazo y alineado al objetivo del ciclo']},
+ {id:'A3', q:'Conoce al médico y su etapa de adopción', obs:'Compromiso pendiente del ciclo anterior, perfil de pacientes, si desconoce / prueba / usa selectivamente / prescribe de rutina.',
+  a:['No sabe quién es más allá del nombre','Recuerda datos sueltos','Conoce historia y etapa; no la usa para decidir el mensaje','Define el mensaje según la etapa de adopción','Define mensaje y anticipa la objeción probable de ese perfil']},
+ {id:'A4', q:'Material listo y secuenciado', obs:'Literatura, muestras, tablet cargada, en la secuencia que exige el objetivo.',
+  a:['Improvisa; busca el material frente al médico','Lleva material pero desordenado','Material completo, sin secuencia pensada','Material completo y en la secuencia del objetivo','Material curado: descartó lo que no aplica a este médico']},
+ {id:'A5', q:'Gestión de acceso y puntualidad', obs:'Relación con secretaria o asistente, horario correcto, lectura de la sala.',
+  a:['Llega en mal horario; sin relación con el personal','Accede con dificultad, sin gestión previa','Accede sin fricción','Relación cultivada con el personal; se le da paso','El personal le facilita activamente tiempo y contexto del día']}
+]},
+{cod:'B', nom:'Apertura', peso:5,
+ desc:'Los primeros 45 segundos. Aquí se decide si hay entrevista o hay entrega de muestras.',
+ items:[
+ {id:'B1', q:'Puente con la visita anterior', obs:'Retoma el compromiso acordado y verifica qué pasó con él.',
+  a:['No menciona la visita anterior','La menciona de forma genérica','Retoma el tema, no el compromiso','Retoma el compromiso y pregunta por el resultado','Retoma el compromiso, indaga el caso concreto y lo usa de puente al objetivo de hoy']},
+ {id:'B2', q:'Declaración de propósito clara y breve', obs:'El médico sabe en menos de un minuto para qué está ahí y por qué le conviene escuchar.',
+  a:['Entra directo a producto sin encuadre','Encuadre largo o confuso','Encuadre claro pero centrado en la empresa','Encuadre breve y centrado en el paciente del médico','Encuadre breve que además obtiene permiso explícito de tiempo']}
+]},
+{cod:'C', nom:'Sondeo SPIN', peso:20,
+ desc:'Modelo SPIN (Rackham): Situación → Problema → Implicación → Necesidad-beneficio. La dimensión que más separa a un visitador de un repartidor de muestras. Ojo: hacer MUCHAS preguntas de Situación correlaciona negativamente con el cierre — el que investigó antes no necesita interrogar.',
+ items:[
+ {id:'C1', q:'S — Preguntas de Situación: pocas y ya informadas', obs:'Recoge contexto (perfil de pacientes, volumen, qué fórmulas usa) sin gastar el tiempo del médico en datos que pudo averiguar antes.',
+  a:['Interroga con datos que ya debía saber; el médico se impacienta','Muchas preguntas de situación, sin rumbo','Cantidad razonable, pero genéricas','Pocas y dirigidas al terreno donde vive el problema','Mínimas: llega informado y solo confirma lo que necesita para abrir el problema']},
+ {id:'C2', q:'P — Preguntas de Problema: saca la insatisfacción explícita', crit:true, obs:'Que el médico nombre la dificultad: cólicos que no ceden, estreñimiento, abandono de la fórmula, madres que regresan.',
+  a:['No indaga problemas; asume el que trae en el guion','Insinúa el problema en vez de preguntarlo','Pregunta y el médico reconoce una dificultad general','El médico nombra un problema concreto de su práctica','El médico nombra varios problemas y señala cuál le pesa más']},
+ {id:'C3', q:'I — Preguntas de Implicación: amplía la consecuencia', crit:true, obs:'El corazón de SPIN. Lleva al médico a dimensionar el costo del problema: adherencia, consultas repetidas, ansiedad de la madre, abandono de la lactancia mixta, cambio de marca.',
+  a:['No las hace: pasa del problema directo al producto','Una implicación insinuada por el propio visitador, no por el médico','Pregunta por la consecuencia; respuesta superficial','El médico describe consecuencias clínicas o de manejo concretas','El médico encadena consecuencias y concluye solo que el problema le cuesta más de lo que creía']},
+ {id:'C4', q:'N — Preguntas de Necesidad-beneficio: el médico enuncia el valor', crit:true, obs:'"¿De qué le serviría contar con una fórmula que…?" El beneficio sale de la boca del médico, no del visitador.',
+  a:['El visitador enuncia el beneficio por el médico','Pregunta retórica que el propio visitador responde','Pregunta bien formulada; el médico responde con cortesía','El médico enuncia el beneficio en sus propias palabras','El médico enuncia el beneficio y describe en qué paciente lo usaría']},
+ {id:'C5', q:'Secuencia SPIN y escucha activa', obs:'Respeta el orden S→P→I→N sin saltar a producto, y repregunta sobre la respuesta del médico, no sobre su guion.',
+  a:['Sin secuencia; monólogo o salto directo a producto','Mezcla desordenada; interrumpe respuestas','Sigue el orden pero avanza sin profundizar','Secuencia clara y repregunta sobre lo que el médico dice','Secuencia natural, parafrasea para confirmar y solo entonces presenta']}
+]},
+{cod:'D', nom:'Argumentación y material promocional', peso:20,
+ desc:'El material apoya la conversación, no la sustituye.',
+ items:[
+ {id:'D1', q:'Manejo de la ayuda visual', crit:true, obs:'La sostiene él, señala el dato, controla el ritmo y la página. No la entrega ni deja que el médico pase páginas solo.',
+  a:['La entrega al médico o no la usa','Pasa páginas sin señalar; el material habla solo','La controla pero recorre todas las páginas','Controla el material y usa solo las páginas que aplican','Controla, señala el dato exacto, hace silencio para que el médico lea y retoma']},
+ {id:'D2', q:'Liga característica → ventaja → beneficio a la necesidad detectada', crit:true, obs:'El argumento arranca del problema que el médico describió en el sondeo.',
+  a:['Recita atributos del producto','Menciona beneficios genéricos','Beneficios correctos, desconectados del sondeo','Beneficio ligado explícitamente a lo dicho por el médico','Ligado y traducido al paciente concreto que el médico mencionó']},
+ {id:'D3', q:'Dominio científico y respaldo con evidencia', obs:'α-lactoalbúmina como fracción proteica dominante; jabones cálcicos por aceite de palma; osmolaridad; referencias.',
+  a:['Errores conceptuales','Sabe el mensaje, no lo sustenta','Sustenta con evidencia general','Cita evidencia específica y la explica bien','Maneja el mecanismo, la evidencia y responde preguntas técnicas sin material']},
+ {id:'D4', q:'Diferenciación competitiva y cumplimiento del Código OMS', crit:true, obs:'Compara sobre datos, sin denigrar. Ningún mensaje que desincentive la lactancia materna.',
+  a:['Denigra al competidor o vulnera el Código','Comparación imprecisa o insinuante','Comparación correcta y respetuosa','Comparación sobre composición verificable, con encuadre pro-lactancia explícito','Diferencia con datos, encuadra la fórmula como recurso cuando la lactancia no es posible, y el médico lo reconoce']}
+]},
+{cod:'E', nom:'Manejo de objeciones', peso:10,
+ desc:'La objeción es información, no un ataque.',
+ items:[
+ {id:'E1', q:'Escucha completa y clarifica la objeción real', obs:'No responde a la primera frase; averigua qué hay detrás.',
+  a:['Interrumpe o se pone a la defensiva','Responde de inmediato a la objeción superficial','Escucha completa y responde','Clarifica antes de responder','Clarifica, aísla la objeción real y la separa del pretexto']},
+ {id:'E2', q:'Responde con evidencia y reconfirma', obs:'Cierra el bucle: "¿resuelve eso su inquietud?"',
+  a:['No la resuelve o la evade','Responde con opinión','Responde con evidencia; no verifica','Responde con evidencia y verifica aceptación','Responde, verifica y usa la objeción resuelta como plataforma de cierre']}
+]},
+{cod:'F', nom:'Cierre y compromiso', peso:20,
+ desc:'La visita sin compromiso pedido es una visita no realizada.',
+ items:[
+ {id:'F1', q:'Solicita compromiso explícitamente', crit:true, obs:'Pide. En voz alta. "Doctor, ¿lo inicia con…?"',
+  a:['No pide nada; agradece y se va','Insinúa sin pedir','Pide de forma genérica','Pide un compromiso concreto','Pide un compromiso concreto y guarda silencio esperando la respuesta']},
+ {id:'F2', q:'El compromiso es medible', crit:true, obs:'Producto + perfil de paciente + cantidad o plazo.',
+  a:['Sin compromiso','"Lo voy a tener en cuenta"','Compromiso general de prescribir','Compromiso con producto y perfil de paciente','Producto, perfil, número de pacientes y plazo']},
+ {id:'F3', q:'Acuerda el siguiente paso', obs:'Fecha de próxima visita o material a traer.',
+  a:['No hay siguiente paso','Vago: "paso pronto"','Acuerda volver','Acuerda fecha o entregable concreto','Acuerda fecha, entregable y qué se revisará entonces']},
+ {id:'F4', q:'Sale con el acuerdo verbalizado y anotado', obs:'Repite el acuerdo antes de despedirse.',
+  a:['No lo repite ni anota','Lo anota después, de memoria','Lo repite o lo anota','Lo repite frente al médico y lo anota','Lo repite, el médico confirma, queda anotado en el momento']}
+]},
+{cod:'G', nom:'Disciplina post-visita', peso:5,
+ desc:'Lo que pasa en los diez minutos siguientes.',
+ items:[
+ {id:'G1', q:'Registro el mismo día', obs:'Compromiso y observaciones cargados en la herramienta, no al final de la semana.',
+  a:['No registra','Registra días después','Registra el mismo día, incompleto','Registra completo el mismo día','Registra completo y ajusta el plan de la próxima visita en el momento']},
+ {id:'G2', q:'Autocrítica de la visita', obs:'Antes de que el gerente hable, identifica él mismo qué haría distinto.',
+  a:['No reflexiona / se justifica','Reconoce solo si se le señala','Identifica algo mejorable','Identifica el punto correcto sin ayuda','Identifica el punto correcto y propone cómo corregirlo la próxima vez']}
+]}
+];
+const TOTAL_ITEMS = DIMS.reduce((s,d)=>s+d.items.length,0);
+
+const RETOS = {
+A:[{t:'Close Up antes de la ruta',d:'Cada lunes, antes de armar la ruta de la semana, revisa la auditoría de recetas de los médicos que vas a visitar y anota qué prescribe cada uno y de qué marca puedes desplazar.',m:'El GD pide la nota de auditoría de 5 médicos al azar en el próximo acompañamiento. Meta: 5 de 5 con dato y marca a desplazar.'},
+   {t:'Objetivo con número',d:'Ningún objetivo de visita sin cifra del Close Up detrás: de cuántas recetas viene, a cuántas quieres llevarlo y a costa de qué marca.',m:'Meta: 8 de 10 objetivos del ciclo formulados con dato de partida, meta numérica y marca a desplazar.'}],
+B:[{t:'Puente obligatorio',d:'Ninguna visita de seguimiento arranca sin retomar el compromiso anterior y preguntar qué pasó con ese paciente.',m:'Meta: 100% de visitas de seguimiento del ciclo abren con el puente.'},
+   {t:'45 segundos',d:'Practica un encuadre de menos de 45 segundos que termine pidiendo permiso de tiempo. Graba y cronometra tres versiones.',m:'El GD cronometra la apertura en el próximo acompañamiento. Meta: bajo 45 s en 4 de 5.'}],
+C:[{t:'Cero situación en frío',d:'Antes de entrar, escribe lo que ya sabes del médico (volumen, fórmulas que usa, tier). Prohibido preguntar en consulta algo que esté en esa nota: cada pregunta de Situación evitable es tiempo que le quitas al problema.',m:'El GD cuenta preguntas de Situación por visita. Meta: máximo 2 por entrevista en las 4 visitas de la jornada.'},
+   {t:'Tres implicaciones',d:'Después de que el médico nombre un problema, haz tres preguntas de Implicación antes de mencionar Nutribén. Consecuencia clínica, consecuencia en la madre, consecuencia en la adherencia.',m:'Meta: 3 preguntas de Implicación en al menos 3 de las 4 visitas del próximo acompañamiento.'},
+   {t:'Que lo diga él',d:'Cierra el sondeo con una pregunta de Necesidad-beneficio y guarda silencio hasta que el médico enuncie el valor. Si lo dices tú, no cuenta.',m:'El GD registra si el beneficio salió del médico o del visitador. Meta: del médico en 3 de 4 visitas.'},
+   {t:'Banco SPIN por especialidad',d:'Construye una batería escrita de preguntas S, P, I y N para pediatría, neonatología y gastro. Cuatro por letra, por especialidad.',m:'Documento entregado al GD antes del inicio del ciclo y ensayado en juego de roles.'}],
+D:[{t:'Tres páginas, no diez',d:'Selecciona antes de entrar las tres páginas de la ayuda visual que aplican a este médico. El resto no se abre.',m:'El GD verifica en las 4 visitas de la jornada que solo se usaron las páginas seleccionadas.'},
+   {t:'Silencio de lectura',d:'Al señalar un dato clave, cállate tres segundos y deja que el médico lo lea. Cuenta mentalmente.',m:'El GD observa la pausa en 5 visitas. Meta: 4 de 5.'},
+   {t:'Mecanismo sin material',d:'Explica al GD, sin ayuda visual, el mecanismo de los jabones cálcicos y por qué la α-lactoalbúmina dominante cambia el perfil de aminoácidos.',m:'Evaluación oral con el GD. Aprobado o repite en dos semanas.'}],
+E:[{t:'Pregunta antes de responder',d:'Frente a cualquier objeción, tu primera reacción es una pregunta clarificadora, nunca una respuesta.',m:'El GD registra la primera reacción ante objeciones. Meta: pregunta primero en 4 de 5.'},
+   {t:'Las cinco de siempre',d:'Escribe las cinco objeciones más frecuentes de tu territorio con la respuesta basada en evidencia y la referencia.',m:'Documento entregado al GD; se ensaya en juego de roles.'}],
+F:[{t:'Pide y calla',d:'Solicita el compromiso y guarda silencio hasta que el médico responda. El primero que habla, pierde.',m:'El GD observa el silencio post-solicitud. Meta: 4 de 5 visitas.'},
+   {t:'Compromiso con número',d:'Todo compromiso debe salir con producto, perfil de paciente y cantidad o plazo. Si falta uno, repregunta.',m:'Meta: 6 de 10 compromisos del ciclo con los tres elementos, registrados.'},
+   {t:'Verificación del ciclo',d:'En la siguiente visita a cada médico, verifica el compromiso anterior. Lleva el registro.',m:'Tasa de verificación ≥80% de los compromisos del ciclo previo.'}],
+G:[{t:'Registro antes de arrancar',d:'No enciendes el carro hasta haber registrado el compromiso de la visita que acabas de hacer.',m:'El GD compara hora de visita vs hora de registro. Meta: 90% mismo día.'},
+   {t:'Primero hablo yo',d:'En cada acompañamiento, antes de que el GD opine, tú dices qué salió bien y qué cambiarías.',m:'Se aplica en el 100% de las visitas del acompañamiento.'}]
+};
+
+
+const TIERS = [
+ {min:4.50, nom:'Referente',             cls:'t1', txt:'Nivel de entrenador. Debe acompañar a otros y documentar sus prácticas.'},
+ {min:3.50, nom:'Competente',            cls:'t2', txt:'Ejecuta con solidez. El coaching se enfoca en refinar, no en corregir.'},
+ {min:2.50, nom:'En desarrollo',         cls:'t3', txt:'Base presente con vacíos concretos. Requiere retos dirigidos y acompañamiento en 30 días.'},
+ {min:0,    nom:'Requiere intervención', cls:'t4', txt:'Plan de mejora formal, acompañamiento quincenal y revalidación en 60 días.'}
+];
+const tierDe = p => TIERS.find(t=>p>=t.min);
+const ITEMS = DIMS.flatMap(d=>d.items.map(it=>({...it, dim:d.cod, dimNom:d.nom})));
+
+/* =========================================================
+   CONEXIÓN
+   ========================================================= */
+const FN = 'https://lzljnszgqjxxufpkcolv.supabase.co/functions/v1/coaching-campo';
+let CODIGO = null, HIST = [];
+
+async function api(accion, extra={}){
+  const r = await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({accion, codigo:CODIGO, ...extra})});
+  const d = await r.json().catch(()=>({error:'Respuesta ilegible del servidor'}));
+  if(!r.ok) throw new Error(d.error || 'Error de conexión');
+  return d;
+}
+
+/* =========================================================
+   ESTADO — una sola evaluación por jornada.
+   Los médicos son el contexto observado (mínimo 4).
+   ========================================================= */
+let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}};
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const nuevoMedico = () => ({nombre:'', especialidad:'Pediatría', tier_emc:''});
+
+const FRECS = [
+  {v:'siempre',       t:'En todas',    d:'Sostuvo la conducta en las cuatro visitas'},
+  {v:'inconsistente', t:'En algunas',  d:'Apareció en unas visitas y en otras no'},
+  {v:'no',            t:'En ninguna',  d:'No se presentó en ninguna visita'}
+];
+
+$$('.tabs button').forEach(b=>b.onclick=()=>{
+  $$('.tabs button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  $$('.vista').forEach(v=>v.classList.remove('on'));
+  $('#v-'+b.dataset.v).classList.add('on'); window.scrollTo(0,0);
+  if(b.dataset.v==='hist'){
+    if(!CODIGO) $('#hist-cont').innerHTML='<div class="card"><p class="sub">Escribe el código de gerencia en la pestaña Jornada para ver el historial.</p></div>';
+    else cargarHistorial();
+  }
+});
+
+EQUIPO.forEach(n=>{
+  $('#c_mr').insertAdjacentHTML('beforeend',`<option>${n}</option>`);
+  $('#h_mr').insertAdjacentHTML('beforeend',`<option>${n}</option>`);
+});
+$('#c_fecha').value = new Date().toISOString().slice(0,10);
+
+/* ---------- acceso ---------- */
+$('#b-entrar').onclick = async ()=>{
+  const cod = $('#a_cod').value.trim();
+  $('#acc-error').textContent='';
+  if(!cod){ $('#acc-error').textContent='Escribe el código.'; return; }
+  $('#b-entrar').disabled = true;
+  try{
+    CODIGO = cod; await api('entrar');
+    $('#paso-acceso').style.display='none'; $('#paso-cab').style.display='block';
+    cargarHistorial();
+  }catch(e){ CODIGO=null; $('#acc-error').textContent = e.message; }
+  finally{ $('#b-entrar').disabled=false; }
+};
+$('#a_cod').onkeydown = e=>{ if(e.key==='Enter') $('#b-entrar').click(); };
+
+/* ---------- abrir jornada ---------- */
+$('#b-empezar').onclick = ()=>{
+  const cab = {mr:$('#c_mr').value, evaluador:$('#c_eval').value.trim(), fecha:$('#c_fecha').value,
+    pais:$('#c_pais').value, ciudad:$('#c_ciudad').value.trim(), ciclo:$('#c_ciclo').value.trim(), tipo:$('#c_tipo').value};
+  if(!cab.mr || !cab.evaluador){ $('#cab-error').textContent='Faltan visitador o gerente.'; return; }
+  $('#cab-error').textContent=''; J.cab = cab;
+  if(!J.medicos.length) J.medicos = Array.from({length:MIN_VISITAS}, nuevoMedico);
+  J.dimActiva = 0;
+  $('#paso-cab').style.display='none'; $('#paso-inst').style.display='block';
+  pintarTodo(); window.scrollTo(0,0);
+};
+
+/* ---------- médicos observados ---------- */
+function medicosValidos(){ return J.medicos.filter(m=>m.nombre.trim()).length; }
+
+function pintarMedicos(){
+  const n = medicosValidos(), falta = Math.max(0, MIN_VISITAS-n);
+  $('#panel-medicos').innerHTML = `
+    <h2>Visitas observadas en la jornada</h2>
+    <p class="sub">La evaluación es una sola, sobre el patrón del día. Aquí solo se registra a quién se visitó — se requieren ${MIN_VISITAS} como mínimo.</p>
+    <div style="margin-top:14px">
+      ${J.medicos.map((m,i)=>`<div class="medfila">
+        <input type="text" data-m="${i}" data-c="nombre" value="${esc(m.nombre)}" placeholder="Médico ${i+1}">
+        <select data-m="${i}" data-c="especialidad">
+          ${['Pediatría','Neonatología','Gastro pediátrica','Alergología','Ginecología','Medicina general']
+            .map(e=>`<option ${m.especialidad===e?'selected':''}>${e}</option>`).join('')}</select>
+        <select data-m="${i}" data-c="tier_emc">
+          ${['','TIER 1','TIER 2','TIER 3','TIER 4'].map(t=>`<option value="${t}" ${m.tier_emc===t?'selected':''}>${t||'Sin tier'}</option>`).join('')}</select>
+        ${J.medicos.length>MIN_VISITAS?`<button class="btn gh" data-del="${i}" style="padding:6px 12px;font-size:12.5px">Quitar</button>`:'<span></span>'}
+      </div>`).join('')}
+    </div>
+    <div class="fila-btn" style="margin-top:10px">
+      <button class="btn gh" id="b-addmed">+ Agregar visita</button>
+      <span class="contador ${falta?'falta':''}" style="margin-left:0">
+        ${falta?`Faltan <b>${falta}</b> visita(s) por registrar`:`<b>${n}</b> visitas registradas`}</span>
+    </div>`;
+  $('#panel-medicos').querySelectorAll('[data-m]').forEach(el=>{
+    const h = e=>{ J.medicos[+el.dataset.m][el.dataset.c] = e.target.value;
+      if(el.dataset.c==='nombre') actualizarCierre(); };
+    el.oninput = h; el.onchange = h;
+  });
+  $('#panel-medicos').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    J.medicos.splice(+b.dataset.del,1); pintarMedicos(); actualizarCierre(); });
+  $('#b-addmed').onclick = ()=>{ J.medicos.push(nuevoMedico()); pintarMedicos(); };
+}
+
+/* ---------- avance ---------- */
+function itemsCalificados(){ return ITEMS.filter(it=>J.nivel[it.id]!==undefined).length; }
+function listoParaCerrar(){ return medicosValidos()>=MIN_VISITAS && itemsCalificados()===TOTAL_ITEMS; }
+
+function pintarRail(){
+  $('#rail').innerHTML = DIMS.map((d,i)=>{
+    const h = d.items.filter(it=>J.nivel[it.id]!==undefined).length;
+    const cls = h===d.items.length?'full':(h?'part':'');
+    return `<button data-i="${i}" class="${i===J.dimActiva?'on':''}"><span class="dot ${cls}"></span><span>${d.cod}. ${d.nom}</span></button>`;
+  }).join('') + `<div class="avance">${itemsCalificados()} de ${TOTAL_ITEMS} conductas evaluadas</div>`;
+  $('#rail').querySelectorAll('button').forEach(b=>b.onclick=()=>{J.dimActiva=+b.dataset.i;pintarDim();window.scrollTo(0,0)});
+}
+
+function pintarDim(){
+  const d = DIMS[J.dimActiva];
+  const ultima = J.dimActiva===DIMS.length-1;
+  $('#dim-cont').innerHTML = `<div class="card">
+    <div class="dimhead"><span class="cod">${d.cod}</span><h3>${d.nom}</h3><span class="peso">${d.peso}% del puntaje</span></div>
+    <p class="sub" style="margin:-6px 0 16px">${d.desc}</p>
+    ${d.items.map(itemHTML).join('')}
+    <div class="fila-btn" style="margin-top:6px">
+      ${J.dimActiva>0?`<button class="btn gh" data-nav="${J.dimActiva-1}">← Anterior</button>`:''}
+      ${!ultima?`<button class="btn" data-nav="${J.dimActiva+1}">Siguiente dimensión →</button>`
+        :`<button class="btn" id="b-cerrar">Ir a la sesión de feedback →</button>`}
+      <span class="sub" id="aviso-cierre"></span>
+    </div></div>`;
+  $('#dim-cont').querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{J.dimActiva=+b.dataset.nav;pintarDim();window.scrollTo(0,0)});
+  const bc = $('#b-cerrar');
+  if(bc) bc.onclick = ()=>{
+    if(medicosValidos()<MIN_VISITAS){ alert(`Se requieren ${MIN_VISITAS} visitas observadas. Registradas: ${medicosValidos()}.`); return; }
+    if(itemsCalificados()<TOTAL_ITEMS && !confirm(`Faltan ${TOTAL_ITEMS-itemsCalificados()} conductas por evaluar. Se excluyen del puntaje. ¿Continuar?`)) return;
+    $('#paso-inst').style.display='none'; $('#paso-cierre').style.display='block'; window.scrollTo(0,0);
+  };
+  $('#dim-cont').querySelectorAll('.escala button').forEach(b=>b.onclick=()=>{
+    J.nivel[b.dataset.id] = b.dataset.v==='na' ? 'na' : +b.dataset.v;
+    if(b.dataset.v==='na') delete J.frec[b.dataset.id];
+    else if(!J.frec[b.dataset.id]) J.frec[b.dataset.id]='siempre';
+    pintarDim(); pintarRail(); actualizarCierre();
+  });
+  $('#dim-cont').querySelectorAll('.frec button').forEach(b=>b.onclick=()=>{
+    J.frec[b.dataset.id] = b.dataset.f; pintarDim(); actualizarCierre(); });
+  $('#dim-cont').querySelectorAll('.notaitem input').forEach(inp=>{
+    inp.oninput = e=>J.notas[inp.dataset.id]=e.target.value; });
+  pintarRail(); actualizarCierre();
+}
+
+function actualizarCierre(){
+  const el = $('#aviso-cierre'); if(!el) return;
+  const fm = Math.max(0, MIN_VISITAS-medicosValidos());
+  const fi = TOTAL_ITEMS - itemsCalificados();
+  el.innerHTML = (fm||fi)
+    ? `<span style="color:var(--tinta-2)">${fm?`Faltan ${fm} visita(s) registrada(s). `:''}${fi?`${fi} conducta(s) sin evaluar.`:''}</span>`
+    : '<span style="color:var(--verde)">Jornada completa.</span>';
+}
+
+function itemHTML(it){
+  const sel = J.nivel[it.id], f = J.frec[it.id];
+  return `<div class="item ${it.crit?'crit':''}">
+    <div class="q">${it.q} ${it.crit?'<span class="pill">Crítico</span>':''}</div>
+    <div class="obs">${it.obs}</div>
+    <div class="escala">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}"><b>${k+1}</b>${t}</button>`).join('')}</div>
+    <div class="escala" style="grid-template-columns:1fr;margin-top:6px">
+      <button class="na ${sel==='na'?'on':''}" data-id="${it.id}" data-v="na">No observable en la jornada — excluir del puntaje</button></div>
+    ${(sel!==undefined && sel!=='na')?`<div class="frec"><span class="et">¿En cuántas visitas?</span>
+      ${FRECS.map(x=>`<button data-id="${it.id}" data-f="${x.v}" class="${f===x.v?'on':''}" title="${x.d}">${x.t}</button>`).join('')}</div>`:''}
+    <div class="notaitem"><input type="text" data-id="${it.id}" value="${esc(J.notas[it.id]||'')}"
+      placeholder="Evidencia observada (frase textual, en qué visita ocurrió)"></div>
+  </div>`;
+}
+
+function pintarTodo(){ pintarMedicos(); pintarDim(); }
+$('#b-regresar').onclick = ()=>{ $('#paso-cierre').style.display='none'; $('#paso-inst').style.display='block'; window.scrollTo(0,0); };
+
+/* =========================================================
+   MOTOR DE ANÁLISIS — una evaluación, dos señales por conducta:
+   nivel (qué tan bien) y frecuencia (con qué constancia).
+   ========================================================= */
+function analizar(){
+  const nivel = J.nivel, frec = J.frec;
+  const porDim={}; let num=0, den=0;
+
+  DIMS.forEach(d=>{
+    const v = d.items.map(it=>nivel[it.id]).filter(x=>typeof x==='number');
+    if(!v.length){ porDim[d.cod]=null; return; }
+    const p = v.reduce((a,b)=>a+b,0)/v.length;
+    porDim[d.cod]=p; num+=p*d.peso; den+=d.peso;
+  });
+  const global = +(den?num/den:0).toFixed(2);
+
+  // Sistemático: nivel bajo sostenido en todas las visitas → no sabe hacerlo.
+  // Errático: lo hace en algunas visitas y en otras no → sabe, no lo aplica siempre.
+  const sistematico=[], erratico=[];
+  ITEMS.forEach(it=>{
+    const n = nivel[it.id], f = frec[it.id];
+    if(typeof n!=='number') return;
+    if(f==='inconsistente')        erratico.push({id:it.id, dim:it.dim, q:it.q, nivel:n, crit:!!it.crit});
+    else if(n<=2.5)                sistematico.push({id:it.id, dim:it.dim, q:it.q, nivel:n,
+                                     crit:!!it.crit, nunca:f==='no'});
+  });
+  sistematico.sort((a,b)=>a.nivel-b.nivel);
+  erratico.sort((a,b)=>a.nivel-b.nivel);
+
+  // Consistencia: proporción de conductas sostenidas en todas las visitas
+  const conF = ITEMS.map(it=>frec[it.id]).filter(Boolean);
+  const consistencia = conF.length
+    ? +(conF.filter(f=>f==='siempre').length / conF.length).toFixed(2) : null;
+
+  const criticos = ITEMS.filter(it=>it.crit && typeof nivel[it.id]==='number' && nivel[it.id]<=2.5)
+    .map(it=>({id:it.id, dim:it.dim, q:it.q, nivel:nivel[it.id]}));
+
+  return {porDim, global, sistematico, erratico, consistencia, criticos,
+          nivel, frec, nVisitas: medicosValidos()};
+}
+
+function retosDe(a){
+  const out=[];
+  const orden = DIMS.filter(d=>a.porDim[d.cod]!==null)
+    .map(d=>({cod:d.cod,nom:d.nom,p:a.porDim[d.cod]})).sort((x,y)=>x.p-y.p).slice(0,2);
+  orden.forEach(o=>(RETOS[o.cod]||[]).slice(0, o.p<2.5?2:1)
+    .forEach(r=>out.push({...r, dim:o.cod, dimNom:o.nom, p:o.p, causa:'Dimensión más baja de la jornada'})));
+  if(a.erratico.length){
+    const e = a.erratico[0], d = DIMS.find(x=>x.cod===e.dim);
+    out.push({dim:e.dim, dimNom:d.nom, p:e.nivel, causa:'Conducta inconsistente entre visitas',
+      t:`Estandarizar ${e.id}`,
+      d:`En la jornada esta conducta apareció en unas visitas y en otras no: la habilidad existe, la disciplina de aplicarla siempre no. Conviértela en paso fijo del guion, no en algo que sale cuando el médico es cómodo.`,
+      m:`Próximo acompañamiento: ${e.id} debe registrarse como "en todas" las visitas. Se mide por constancia, no por nivel.`});
+  }
+  return out;
+}
+
+$('#b-calcular').onclick = async ()=>{
+  J.cual = {fuerte:$('#q_fuerte').value.trim(), mejora:$('#q_mejora').value.trim(), compromiso:$('#q_compromiso').value.trim()};
+  if(medicosValidos() < MIN_VISITAS){ alert(`Se requieren ${MIN_VISITAS} visitas observadas. Registradas: ${medicosValidos()}.`); return; }
+  const a = analizar();
+  const b=$('#b-calcular'); b.disabled=true; b.textContent='Guardando…';
+  let estado;
+  try{
+    await api('guardar',{jornada:{
+      visitador:J.cab.mr, gerente:J.cab.evaluador, fecha:J.cab.fecha, pais:J.cab.pais,
+      ciudad:J.cab.ciudad, ciclo:J.cab.ciclo, tipo:J.cab.tipo,
+      medicos:J.medicos.filter(m=>m.nombre.trim()),
+      item_nivel:J.nivel, item_frecuencia:J.frec, notas:J.notas,
+      por_dimension:a.porDim, puntaje_global:a.global, consistencia:a.consistencia,
+      deficit_sistematico:a.sistematico, desempeno_erratico:a.erratico, cualitativo:J.cual}});
+    estado={ok:true}; cargarHistorial();
+  }catch(e){ estado={ok:false,msg:e.message}; }
+  b.disabled=false; b.textContent='Cerrar jornada y ver resultado';
+  pintarResultado(a, estado);
+};
+
+const SPIN = [
+ {id:'C1', l:'S', nom:'Situación',          nota:'Menos es mejor: llegar informado.'},
+ {id:'C2', l:'P', nom:'Problema',           nota:'Que el médico nombre la dificultad.'},
+ {id:'C3', l:'I', nom:'Implicación',        nota:'El mayor predictor de cierre.'},
+ {id:'C4', l:'N', nom:'Necesidad-beneficio',nota:'El valor sale del médico.'}
+];
+
+function panelSPIN(a){
+  const f = SPIN.map(x=>({...x, p:a.nivel[x.id], fr:a.frec[x.id]})).filter(x=>typeof x.p==='number');
+  if(!f.length) return '';
+  const imp = f.find(x=>x.l==='I'), nec = f.find(x=>x.l==='N'), pro = f.find(x=>x.l==='P');
+
+  let lectura;
+  if(imp && imp.p<=2.5 && pro && pro.p>=4)
+    lectura = 'Detecta el problema pero no lo amplía. Es el patrón más común y el más costoso: el médico reconoce la dificultad, no dimensiona lo que le cuesta, y por eso no siente urgencia de cambiar. El trabajo está en Implicación, no en más argumentos de producto.';
+  else if(nec && nec.p<=2.5)
+    lectura = 'Llega al problema pero enuncia él mismo el beneficio en vez de dejar que lo diga el médico. Un beneficio dicho por el visitador es publicidad; dicho por el médico, es una conclusión propia y se defiende sola.';
+  else if(f[0].p>=4 && imp && imp.p<=3)
+    lectura = 'Sondeo cargado hacia Situación. Rackham lo documentó: el exceso de preguntas de situación correlaciona negativamente con el cierre. Hay que investigar antes y llegar a preguntar problemas.';
+  else if(f.every(x=>x.p>=4))
+    lectura = 'Secuencia SPIN completa y pareja. El sondeo está construyendo la necesidad antes de la presentación, que es exactamente su función.';
+  else
+    lectura = 'Secuencia despareja. Revisa en la matriz en qué letra se corta la cadena: el sondeo funciona como progresión, no como suma de preguntas sueltas.';
+
+  return `<div class="card"><h2>Perfil SPIN del sondeo</h2>
+    <p class="sub">Situación → Problema → Implicación → Necesidad-beneficio. Promedio de las ${a.nVisitas} visitas.</p>
+    <div style="margin-top:14px">
+    ${f.map(x=>`<div class="barra"><div><b style="color:var(--nb-cielo);font-size:16px">${x.l}</b> &nbsp;${x.nom}<br><small>${x.nota}${x.fr==='inconsistente'?` · <span style="color:var(--nb-naranja)">solo en algunas visitas</span>`:''}</small></div>
+      <div class="pista"><div class="fill" style="width:${x.p/5*100}%;${x.p<=2.5?'background:var(--nb-rosa)':''}"></div></div>
+      <div class="val">${x.p.toFixed(1)}</div></div>`).join('')}
+    </div>
+    <p class="sub" style="margin-top:12px"><b>Lectura:</b> ${lectura}</p>
+  </div>`;
+}
+
+function pintarResultado(a, estado){
+  const c=J.cab, t=tierDe(a.global), retos=retosDe(a), cons=a.consistencia;
+  const meds = J.medicos.filter(m=>m.nombre.trim());
+  const lecturaCons = cons===null ? ''
+    : cons>=0.85 ? 'Ejecución uniforme: lo que hace, lo hace en todas las visitas. El puntaje representa su nivel real.'
+    : cons>=0.65 ? 'Varias conductas aparecen solo en algunas visitas. Revisa si se caen con médicos difíciles o al final del día.'
+    : 'Ejecución muy variable. El promedio engaña: en unas visitas trabaja bien y en otras no. Antes de enseñar técnica nueva, hay que estabilizar la que ya tiene.';
+
+  $('#paso-cierre').style.display='none'; $('#paso-inst').style.display='none';
+  $('#paso-res').style.display='block';
+  $('#paso-res').innerHTML = `
+  <div class="solo-print" style="margin-bottom:14px">
+    <div style="font-size:19px;font-weight:700;color:#0033A1">Evaluación de jornada de acompañamiento</div>
+    <div style="font-size:12px;color:#4A5B78">Nutribén Centroamérica · Casa Ferne, S.A.</div></div>
+
+  <div class="card">
+    <table><tbody>
+      <tr><th style="width:120px">Visitador</th><td><b>${esc(c.mr)}</b></td>
+          <th style="width:120px">Gerente</th><td>${esc(c.evaluador)}</td></tr>
+      <tr><th>Fecha</th><td>${esc(c.fecha)}</td><th>Ciclo</th><td>${esc(c.ciclo)||'—'}</td></tr>
+      <tr><th>Plaza</th><td>${esc(c.ciudad)||'—'}, ${esc(c.pais)}</td><th>Tipo</th><td>${esc(c.tipo)}</td></tr>
+      <tr><th>Visitas observadas</th><td colspan="3">${meds.length} — ${meds.map(m=>esc(m.nombre)+(m.tier_emc?` (${m.tier_emc})`:'')).join(' · ')}</td></tr>
+    </tbody></table></div>
+
+  <div class="marcador">
+    <div><div class="big">${a.global.toFixed(2)}<span class="of"> / 5</span></div>
+      <div style="font-size:13px;opacity:.75;margin-top:4px">Jornada de ${meds.length} visitas</div></div>
+    <div style="margin-left:auto;text-align:right">
+      <span class="tier ${t.cls}">${t.nom}</span>
+      <div style="font-size:13px;opacity:.85;margin-top:8px;max-width:390px">${t.txt}</div></div>
+  </div>
+
+  ${cons!==null?`<div class="card"><h2>Constancia durante la jornada</h2>
+    <div class="barra" style="margin-top:12px"><div>Índice de constancia<br><small>Conductas sostenidas en todas las visitas</small></div>
+      <div class="pista"><div class="fill" style="width:${cons*100}%;background:${cons>=0.85?'var(--nb-menta)':cons>=0.65?'var(--nb-cielo)':'var(--nb-naranja)'}"></div></div>
+      <div class="val">${cons.toFixed(2)}</div></div>
+    <p class="sub" style="margin-top:8px">${lecturaCons}</p></div>`:''}
+
+  ${a.sistematico.length?`<div class="aviso rojo">
+    <b>Déficit sistemático (${a.sistematico.length}).</b> Nivel bajo y sostenido en toda la jornada: no fue un mal momento, no lo sabe hacer. Requiere entrenamiento, no recordatorio.
+    <ul style="margin:8px 0 0;padding-left:20px">${a.sistematico.slice(0,8).map(x=>
+      `<li><b>${x.id}</b> — ${esc(x.q)} · nivel ${x.nivel}${x.nunca?' · no apareció en ninguna visita':''}${x.crit?' <span class="pill sis">Crítico</span>':''}</li>`).join('')}</ul></div>`:''}
+
+  ${a.erratico.length?`<div class="aviso">
+    <b>Conducta inconsistente (${a.erratico.length}).</b> Apareció en algunas visitas y en otras no: la habilidad existe pero no la aplica siempre. Es disciplina, no capacitación.
+    <ul style="margin:8px 0 0;padding-left:20px">${a.erratico.slice(0,8).map(x=>
+      `<li><b>${x.id}</b> — ${esc(x.q)} · nivel ${x.nivel}${x.crit?' <span class="pill err">Crítico</span>':''}</li>`).join('')}</ul></div>`:''}
+
+  ${(!a.sistematico.length && !a.erratico.length)?`<div class="aviso verde">
+    <b>Sin déficits sistemáticos ni conductas inconsistentes.</b> Ejecución pareja y por encima del umbral en toda la jornada.</div>`:''}
+
+  ${panelSPIN(a)}
+
+  <div class="card"><h2>Perfil por dimensión</h2>
+    <div style="margin-top:14px">
+    ${DIMS.map(d=>{const p=a.porDim[d.cod];
+      return `<div class="barra"><div><b>${d.cod}.</b> ${d.nom}<br><small>peso ${d.peso}%</small></div>
+      <div class="pista">${p===null?'':`<div class="fill" style="width:${p/5*100}%"></div>`}</div>
+      <div class="val">${p===null?'—':p.toFixed(2)}</div></div>`;}).join('')}
+    </div></div>
+
+  <div class="card"><h2>Sesión de feedback</h2>
+    <table style="margin-top:8px"><tbody>
+      <tr><th style="width:220px">Patrón más sólido</th><td>${esc(J.cual.fuerte)||'—'}</td></tr>
+      <tr><th>Conducta a cambiar</th><td>${esc(J.cual.mejora)||'—'}</td></tr>
+      <tr><th>Compromisos de la jornada</th><td>${esc(J.cual.compromiso)||'—'}</td></tr>
+    </tbody></table></div>
+
+  <div class="card"><h2>Retos asignados</h2>
+    <p class="sub">Derivados del patrón de la jornada. Se revisan en el próximo acompañamiento.</p>
+    <div style="margin-top:14px">${retos.map(r=>`<div class="reto">
+      <div class="et">${r.dim} · ${r.dimNom} — ${r.causa}</div>
+      <h4>${r.t}</h4><p>${r.d}</p><div class="med"><b>Cómo se mide:</b> ${r.m}</div></div>`).join('')}</div></div>
+
+  <div class="card"><h2>Detalle de la evaluación</h2>
+    <table style="margin-top:10px"><thead><tr><th style="width:44%">Conducta</th><th style="width:60px;text-align:center">Nivel</th>
+      <th style="width:110px">Frecuencia</th><th>Evidencia observada</th></tr></thead><tbody>
+    ${DIMS.map(d=>`<tr><td colspan="4" style="background:var(--papel);font-weight:650;color:var(--nb-marino);font-size:12px">${d.cod}. ${d.nom.toUpperCase()} — ${a.porDim[d.cod]===null?'—':a.porDim[d.cod].toFixed(2)}</td></tr>`
+      + d.items.map(it=>{
+        const n=a.nivel[it.id], f=a.frec[it.id];
+        const et = f==='siempre'?'En todas':f==='inconsistente'?'En algunas':f==='no'?'En ninguna':'—';
+        const col = f==='inconsistente'?'var(--nb-naranja)':(typeof n==='number'&&n<=2.5?'var(--rojo)':'var(--tinta-2)');
+        return `<tr><td><b>${it.id}</b> ${it.q}${it.crit?' <span class="pill">Crítico</span>':''}</td>
+        <td class="n">${n===undefined?'—':n==='na'?'N/O':n}</td>
+        <td style="color:${col};font-weight:600;font-size:12.5px">${et}</td>
+        <td>${esc(J.notas[it.id])||'<span style="color:#B7C2D6">sin registro</span>'}</td></tr>`;}).join('')).join('')}
+    </tbody></table></div>
+
+  <div class="card"><h2>Acuerdo</h2>
+    <p class="sub">La conducta a cambiar se verifica en el próximo acompañamiento, sobre otra jornada de ${MIN_VISITAS} visitas como mínimo.</p>
+    <div class="firma"><div>Firma del visitador — ${esc(c.mr)}</div>
+      <div>Firma del Gerente de Distrito — ${esc(c.evaluador)}</div></div></div>
+
+  <div class="fila-btn no-print" style="margin-top:18px">
+    <button class="btn" id="b-pdf">Descargar PDF</button>
+    <button class="btn sec" id="b-nueva">Nueva jornada</button>
+    <span class="sub" id="est-guardado"></span></div>`;
+
+  $('#est-guardado').innerHTML = estado && estado.historico ? 'Jornada del registro histórico.'
+    : estado && estado.ok ? 'Guardada en el registro histórico.'
+    : `<span style="color:var(--rojo)"><b>No se guardó:</b> ${estado?estado.msg:'sin conexión'}. Descarga el PDF antes de cerrar.</span>`;
+  $('#b-pdf').onclick = ()=>{
+    const prev=document.title;
+    document.title = `Jornada_${c.mr.replace(/\s+/g,'')}_${c.fecha}`;
+    window.print(); setTimeout(()=>document.title=prev,800);
+  };
+  $('#b-nueva').onclick = ()=>location.reload();
+  window.scrollTo(0,0);
+}
+
+/* =========================================================
+   HISTORIAL Y EVOLUCIÓN ENTRE JORNADAS
+   ========================================================= */
+async function cargarHistorial(){
+  if(!CODIGO) return;
+  $('#hist-msg').textContent='Cargando…';
+  try{
+    const d = await api('listar');
+    HIST = (d.jornadas||[]).map(x=>({...x, global:Number(x.puntaje_global)||0,
+      cons:x.consistencia===null?null:Number(x.consistencia),
+      por_dim:x.por_dimension||{}, nivel:x.item_nivel||{}, frec:x.item_frecuencia||{},
+      medicos:x.medicos||[], notas_i:x.notas||{},
+      sis:x.deficit_sistematico||[], err:x.desempeno_erratico||[], cual:x.cualitativo||{}}));
+    $('#hist-msg').textContent=''; pintarHistorial();
+  }catch(e){ $('#hist-msg').innerHTML=`<span style="color:var(--rojo)">${e.message}</span>`; }
+}
+$('#b-recargar').onclick = cargarHistorial;
+$('#h_mr').onchange = pintarHistorial;
+
+function pintarHistorial(){
+  const f = $('#h_mr').value;
+  const datos = f ? HIST.filter(h=>h.visitador===f) : HIST;
+  const c = $('#hist-cont');
+  if(!datos.length){
+    c.innerHTML = `<div class="card"><p class="sub">Todavía no hay jornadas registradas${f?' para '+esc(f):''}.</p></div>`;
+    return;
+  }
+  c.innerHTML = (f ? panelEvolucion(datos, f) : panelEquipo()) + tablaHist(datos);
+  c.querySelectorAll('[data-ver]').forEach(b=>b.onclick=()=>verJornada(b.dataset.ver));
+}
+
+function panelEquipo(){
+  const por={}; HIST.forEach(h=>(por[h.visitador] ||= []).push(h));
+  return `<div class="card"><h2>Promedio por visitador</h2>
+    <p class="sub">Promedio de todas las jornadas registradas. Elige un visitador arriba para ver su evolución.</p>
+    <div style="margin-top:14px">
+    ${Object.entries(por).sort((a,b)=>a[0].localeCompare(b[0])).map(([mr,l])=>{
+      const prom=l.reduce((a,b)=>a+b.global,0)/l.length;
+      const cs = l.map(x=>x.cons).filter(x=>typeof x==='number');
+      const pc = cs.length? cs.reduce((a,b)=>a+b,0)/cs.length : null;
+      return `<div class="barra"><div>${esc(mr)}<br><small>${l.length} jornada(s)${pc!==null?` · constancia ${pc.toFixed(2)}`:''}</small></div>
+        <div class="pista"><div class="fill" style="width:${prom/5*100}%"></div></div>
+        <div class="val">${prom.toFixed(2)}</div></div>`;}).join('')}
+    </div></div>`;
+}
+
+function panelEvolucion(datos, mr){
+  const orden=[...datos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const pri=orden[0], ult=orden[orden.length-1];
+  const delta = orden.length>1 ? +(ult.global-pri.global).toFixed(2) : null;
+  const filas = DIMS.map(d=>({d, ini:pri.por_dim?.[d.cod], fin:ult.por_dim?.[d.cod]}))
+    .filter(x=>typeof x.ini==='number'&&typeof x.fin==='number');
+
+  // déficits que persisten entre jornadas: el coaching anterior no funcionó
+  const rec={};
+  datos.forEach(h=>[...(h.sis||[]),...(h.err||[])].forEach(x=>{
+    rec[x.id]=rec[x.id]||{q:x.q,n:0}; rec[x.id].n++; }));
+  const persist = Object.entries(rec).filter(([,v])=>v.n>=2).sort((a,b)=>b[1].n-a[1].n);
+
+  const W=Math.max(orden.length-1,1);
+  const pts = orden.map((h,i)=>`${(i/W)*100},${100-(h.global/5)*100}`).join(' ');
+  const ptsC= orden.filter(h=>h.cons!==null).map((h,i)=>`${(i/W)*100},${100-h.cons*100}`).join(' ');
+
+  return `<div class="card"><h2>Evolución — ${esc(mr)}</h2>
+    <p class="sub">${orden.length} jornada(s) entre ${pri.fecha} y ${ult.fecha}${delta!==null?` · variación ${delta>0?'+':''}${delta} puntos`:''}</p>
+
+    ${orden.length>1?`<svg viewBox="0 0 100 100" preserveAspectRatio="none"
+      style="width:100%;height:130px;margin-top:14px;background:var(--papel);border-radius:8px">
+      <line x1="0" y1="${100-(3.5/5)*100}" x2="100" y2="${100-(3.5/5)*100}" stroke="#BADDF4" stroke-width="0.6" stroke-dasharray="2 2"/>
+      ${ptsC?`<polyline points="${ptsC}" fill="none" stroke="#A9A5D1" stroke-width="1.1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/>`:''}
+      <polyline points="${pts}" fill="none" stroke="#0033A1" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
+      ${orden.map((h,i)=>`<circle cx="${(i/W)*100}" cy="${100-(h.global/5)*100}" r="1.6" fill="#00A0DF" vector-effect="non-scaling-stroke"/>`).join('')}
+    </svg>
+    <p class="sub" style="font-size:11.5px;margin-top:4px">Línea sólida: puntaje global por jornada. Línea punteada lavanda: índice de constancia. La horizontal marca el umbral de Competente (3.50).</p>`:''}
+
+    <h3 style="font-size:14px;color:var(--nb-marino);margin-top:20px">Primera jornada vs. última</h3>
+    <table style="margin-top:8px"><thead><tr><th>Dimensión</th><th>Inicio</th><th>Actual</th><th>Cambio</th></tr></thead><tbody>
+    ${filas.map(x=>{const dl=+(x.fin-x.ini).toFixed(2);
+      const col = dl>0.3?'var(--verde)':(dl<-0.3?'var(--rojo)':'var(--tinta-2)');
+      return `<tr><td>${x.d.cod}. ${x.d.nom}</td><td>${x.ini.toFixed(2)}</td><td><b>${x.fin.toFixed(2)}</b></td>
+      <td style="color:${col};font-weight:650">${dl>0?'+':''}${dl}</td></tr>`;}).join('')}
+    </tbody></table>
+
+    ${persist.length?`<div class="aviso" style="margin-top:18px">
+      <b>Déficits que persisten entre jornadas.</b> Aparecieron en dos o más acompañamientos: el reto asignado anteriormente no cambió la conducta. Cambia el método, no la insistencia.
+      <ul style="margin:8px 0 0;padding-left:20px">
+      ${persist.map(([id,v])=>`<li><b>${id}</b> — ${esc(v.q)} · ${v.n} jornadas</li>`).join('')}</ul></div>`:''}
+  </div>`;
+}
+
+function tablaHist(datos){
+  return `<div class="card"><h2>Jornadas registradas</h2>
+    <table style="margin-top:10px"><thead><tr><th>Fecha</th><th>Visitador</th><th>Visitas</th><th>Gerente</th><th>Global</th><th>Constancia</th><th>Nivel</th><th></th></tr></thead><tbody>
+    ${datos.map(h=>{const t=tierDe(h.global);
+      return `<tr><td>${h.fecha}</td><td>${esc(h.visitador)}<br><small style="color:var(--tinta-2)">${esc(h.ciudad)||''}${h.ciclo?' · '+esc(h.ciclo):''}</small></td>
+      <td class="n">${h.n_visitas}</td><td>${esc(h.gerente)}</td>
+      <td class="n">${h.global.toFixed(2)}</td><td class="n">${h.cons!==null?h.cons.toFixed(2):'—'}</td>
+      <td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span></td>
+      <td><button class="btn gh" style="padding:5px 12px;font-size:12.5px" data-ver="${h.id}">Ver</button></td></tr>`;}).join('')}
+    </tbody></table></div>`;
+}
+
+async function verJornada(id){
+  try{
+    const d = await api('detalle',{jornada_id:id});
+    const j = d.jornada;
+    J.cab = {mr:j.visitador, evaluador:j.gerente, fecha:j.fecha, pais:j.pais,
+      ciudad:j.ciudad, ciclo:j.ciclo, tipo:j.tipo};
+    J.medicos = (j.medicos||[]).map(m=>({nombre:m.nombre||'', especialidad:m.especialidad||'', tier_emc:m.tier_emc||''}));
+    J.nivel = j.item_nivel||{}; J.frec = j.item_frecuencia||{}; J.notas = j.notas||{};
+    J.cual = j.cualitativo||{};
+    $$('.tabs button').forEach(x=>x.classList.remove('on'));
+    $$('.tabs button')[0].classList.add('on');
+    $$('.vista').forEach(v=>v.classList.remove('on'));
+    $('#v-nueva').classList.add('on');
+    $('#paso-acceso').style.display='none'; $('#paso-cab').style.display='none';
+    $('#paso-inst').style.display='none'; $('#paso-cierre').style.display='none';
+    pintarResultado(analizar(), {ok:true, historico:true});
+  }catch(e){ alert(e.message); }
+}
+
+$('#b-csv').onclick = ()=>{
+  const f=$('#h_mr').value;
+  const datos = f ? HIST.filter(h=>h.visitador===f) : HIST;
+  if(!datos.length) return;
+  const cols=['fecha','visitador','gerente','pais','ciudad','ciclo','tipo','n_visitas','global','consistencia',
+    ...DIMS.map(d=>'dim_'+d.cod),'deficit_sistematico','inconsistente','patron_solido','a_cambiar','compromisos'];
+  const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const filas=datos.map(h=>[h.fecha,h.visitador,h.gerente,h.pais,h.ciudad,h.ciclo,h.tipo,h.n_visitas,h.global,h.cons,
+    ...DIMS.map(d=>h.por_dim?.[d.cod]??''),
+    (h.sis||[]).map(x=>x.id).join(' '), (h.err||[]).map(x=>x.id).join(' '),
+    h.cual?.fuerte,h.cual?.mejora,h.cual?.compromiso].map(q).join(','));
+  const csv='\ufeff'+cols.join(',')+'\n'+filas.join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`jornadas_${f?f.replace(/\s+/g,''):'equipo'}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
+/* ---------- método ---------- */
+$('#v-guia').innerHTML = `
+<div class="card"><h2>Por qué la jornada y no la visita</h2>
+<p class="sub" style="margin-top:8px">Una sola visita no distingue una habilidad de una casualidad. El visitador puede hacer un sondeo impecable porque el médico estaba de buen humor, o fallar el cierre porque entró una emergencia. Con cuatro visitas consecutivas del mismo día aparece el patrón, y el patrón sí es entrenable.</p>
+<p class="sub" style="margin-top:12px"><b>Se llena una sola evaluación por jornada</b>, no una por visita. El gerente observa las cuatro visitas y al final califica el comportamiento del día. La herramienta <b>no permite cerrar la jornada con menos de ${MIN_VISITAS} visitas registradas</b>: el botón lo impide y el servidor también lo rechaza.</p>
+</div>
+
+<div class="card"><h2>Nivel y frecuencia: dos preguntas por conducta</h2>
+<p class="sub" style="margin-top:8px">Cada conducta se evalúa dos veces. Primero <b>qué tan bien</b> lo hizo (1 a 5, contra anclas conductuales). Después <b>en cuántas visitas</b> lo sostuvo. Ese segundo dato es el que convierte una evaluación en un diagnóstico.</p>
+<table style="margin-top:14px"><thead><tr><th style="width:190px">Lo que ves</th><th>Qué significa</th><th style="width:230px">Qué hacer</th></tr></thead><tbody>
+<tr><td><span class="pill sis">Déficit sistemático</span><br><small style="color:var(--tinta-2)">Nivel bajo · en todas</small></td>
+<td>No fue un mal momento: la conducta no está instalada. No sabe hacerlo.</td>
+<td>Entrenamiento y juego de roles. Recordárselo no sirve de nada.</td></tr>
+<tr><td><span class="pill err">Inconsistente</span><br><small style="color:var(--tinta-2)">En algunas visitas sí, en otras no</small></td>
+<td>La habilidad existe; la disciplina de aplicarla siempre, no. Suele caerse con médicos difíciles o al final del día.</td>
+<td>Convertirla en paso fijo del guion y medirla por constancia, no por nivel.</td></tr>
+</tbody></table>
+<p class="sub" style="margin-top:14px">Confundir las dos es el error más caro del coaching de campo: se entrena a quien ya sabe, y se le recuerda a quien nunca aprendió.</p>
+</div>
+
+<div class="card"><h2>El Close Up es insumo de planificación</h2>
+<p class="sub" style="margin-top:8px">La auditoría de recetas no se usa en la entrevista: se usa <b>antes</b>. Es lo que permite saber qué prescribe hoy el médico, en qué volumen, frente a qué competidor y hacia dónde se mueve.</p>
+<p class="sub" style="margin-top:10px">Por eso los dos primeros ítems de la dimensión A son críticos y están encadenados: <b>A1</b> evalúa si leyó el dato, <b>A2</b> si construyó el objetivo sobre él. Un objetivo que no nace del Close Up es un deseo — "posicionar la marca" — y no se puede verificar en el ciclo siguiente. Uno que sí, se enuncia solo: de cuántas recetas viene, a cuántas quiere llevarlo y a costa de qué marca.</p>
+</div>
+
+<div class="card"><h2>El sondeo se evalúa con SPIN</h2>
+<p class="sub" style="margin-top:8px">La dimensión C sigue el modelo de Neil Rackham, construido sobre observación de miles de entrevistas de venta compleja — que es exactamente la naturaleza de la visita médica: ciclo largo, decisión técnica, sin cierre en el momento.</p>
+<table style="margin-top:14px"><thead><tr><th style="width:52px"></th><th style="width:180px">Tipo</th><th>Qué busca</th><th style="width:230px">Ejemplo en visita médica</th></tr></thead><tbody>
+<tr><td><b style="color:var(--nb-cielo);font-size:17px">S</b></td><td><b>Situación</b></td>
+<td>Contexto. <b>Menos es mejor</b>: Rackham encontró que el exceso correlaciona negativamente con el cierre. El que investigó antes casi no las necesita.</td>
+<td>"¿Cuántos lactantes menores de 6 meses ve por semana?"</td></tr>
+<tr><td><b style="color:var(--nb-cielo);font-size:17px">P</b></td><td><b>Problema</b></td>
+<td>Que el médico nombre una insatisfacción explícita, en sus palabras.</td>
+<td>"¿Qué tan seguido le regresan por cólicos que no ceden con la fórmula actual?"</td></tr>
+<tr><td><b style="color:var(--nb-cielo);font-size:17px">I</b></td><td><b>Implicación</b></td>
+<td>Dimensionar lo que cuesta el problema. <b>Es el mayor predictor de éxito</b> en venta compleja, y el que casi nadie hace.</td>
+<td>"Cuando la madre no ve mejoría en dos semanas, ¿qué termina pasando con la adherencia?"</td></tr>
+<tr><td><b style="color:var(--nb-cielo);font-size:17px">N</b></td><td><b>Necesidad-beneficio</b></td>
+<td>Que el médico enuncie el valor. Dicho por el visitador es publicidad; dicho por el médico, es conclusión propia.</td>
+<td>"¿De qué le serviría una fórmula sin aceite de palma en esos casos?"</td></tr>
+</tbody></table>
+<p class="sub" style="margin-top:14px">El patrón de falla más común y más caro es <b>P alto con I bajo</b>: el visitador detecta el problema, no lo amplía, y el médico reconoce la dificultad sin sentir urgencia de cambiar. Eso no se arregla con más argumentos de producto — se arregla con preguntas de Implicación. La herramienta lo detecta sola y lo señala en el panel SPIN.</p>
+<p class="sub" style="margin-top:10px">Las cuatro letras son ítems críticos salvo Situación, y el quinto ítem evalúa que la secuencia se respete: SPIN es una progresión, no una suma de preguntas sueltas.</p>
+</div>
+
+<div class="card"><h2>Reglas de la observación</h2>
+<ol style="margin:12px 0 0;padding-left:20px;font-size:14px;line-height:1.75">
+<li><b>Cuatro visitas consecutivas, mismo día, mismo visitador.</b> Si se interrumpe la jornada, no hay sesión de feedback.</li>
+<li><b>El gerente no participa.</b> Se presenta y guarda silencio. Si rescata la visita, esa visita no cuenta.</li>
+<li><b>Toma notas al salir de cada visita</b>, aunque la evaluación se llene al final. La memoria colapsa las visitas entre sí y solo sobrevive la última.</li>
+<li><b>Evidencia obligatoria en las conductas bajas.</b> Un 2 sin frase textual no se puede defender ni corregir.</li>
+<li><b>El feedback es sobre el patrón</b>, nunca sobre la última visita — que es la que más pesa en la memoria y la que menos representa.</li>
+</ol></div>
+
+<div class="card"><h2>Cómo se calcula</h2>
+<p class="sub" style="margin-top:8px">Cada conducta se puntúa de 1 a 5 contra anclas conductuales, sobre la jornada completa. La dimensión es el promedio de sus conductas; el global, el promedio ponderado de las dimensiones.</p>
+<div style="margin-top:14px">${DIMS.map(d=>`<div class="barra"><div>${d.cod}. ${d.nom}</div>
+  <div class="pista"><div class="fill" style="width:${d.peso*4}%"></div></div><div class="val">${d.peso}%</div></div>`).join('')}</div>
+<p class="sub" style="margin-top:14px"><b>Sondeo, argumentación y cierre suman 60%</b>: son las fases que predicen conversión a prescripción. <b>Planificación pesa 20%</b> porque sin lectura del Close Up no hay objetivo real, solo buenas intenciones.</p>
+<p class="sub" style="margin-top:10px"><b>Índice de constancia:</b> proporción de conductas marcadas "en todas las visitas". 1.00 significa ejecución uniforme. Bajo 0.65, el promedio global deja de ser representativo.</p>
+<p class="sub" style="margin-top:10px"><b>No observable:</b> cuando la situación no dio lugar en la jornada (por ejemplo, ningún médico objetó). Sale del cálculo en vez de castigar.</p></div>
+
+<div class="card"><h2>Niveles</h2>
+<table style="margin-top:10px"><thead><tr><th>Rango</th><th>Nivel</th><th>Qué implica</th></tr></thead><tbody>
+${TIERS.map(t=>`<tr><td><b>${t.min===0?'&lt; 2.50':'≥ '+t.min.toFixed(2)}</b></td>
+<td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span></td><td>${t.txt}</td></tr>`).join('')}
+</tbody></table></div>
+
+<div class="card"><h2>La sesión de feedback</h2>
+<p class="sub" style="margin-top:8px">Al terminar la jornada, no entre visitas. En este orden:</p>
+<ol style="margin:12px 0 0;padding-left:20px;font-size:14px;line-height:1.75">
+<li>Habla primero el visitador: qué patrón vio en su propio día.</li>
+<li>El gerente presenta la matriz: dónde fue parejo y dónde osciló.</li>
+<li>Se separa lo sistemático de lo errático — se tratan distinto.</li>
+<li>Se acuerda <b>una sola</b> conducta a cambiar y se verifica en el próximo acompañamiento, sobre otras cuatro visitas.</li>
+</ol></div>
+
+<div class="card"><h2>Registro y acceso</h2>
+<p class="sub" style="margin-top:8px">Cada jornada queda en el expediente de Casa Ferne, no en la computadora del gerente. Si cambia el gerente de distrito, el nuevo entra con el mismo código y ve todo el historial del equipo desde la primera jornada.</p>
+<p class="sub" style="margin-top:10px"><b>Cuando alguien deja el puesto, hay que rotar el código</b> — es lo único que separa el expediente de desempeño de quien ya no debería verlo. El visitador recibe su PDF; no entra a la herramienta.</p>
+<p class="sub" style="margin-top:10px">Una jornada se identifica por visitador + fecha. Si guardas dos veces el mismo día, se reemplaza en lugar de duplicarse.</p></div>`;
+</script>
