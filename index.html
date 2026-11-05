@@ -153,30 +153,26 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
 .solo-print{display:none}
 
 /* ---------- modalidad Express ---------- */
+.tend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tend button{border:1px solid var(--linea);background:#fff;border-radius:8px;padding:10px 6px;font-size:13px;color:var(--tinta-2);font-weight:600}
+.tend button:hover{border-color:var(--nb-medio)}
+.tend button.on{background:var(--nb-286-75);border-color:var(--nb-286-75);color:#fff}
+.tend button.on[data-t="inconsistente"]{background:var(--nb-naranja);border-color:var(--nb-naranja);color:#3B2600}
+.tend button.on[data-t="no"]{background:var(--nb-rosa);border-color:var(--nb-rosa);color:#4A0F28}
+.tend button.na{font-weight:500;font-size:12px}
+.tend button.na.on{background:#E9EEF6;border-color:#B7C2D6;color:var(--tinta)}
+.et-nivel{font-size:11px;font-weight:650;color:var(--tinta-2);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px}
+@media(max-width:700px){.tend{grid-template-columns:1fr 1fr}}
 .pill.mx{background:#E6F6F3;color:#1E6B5A} .pill.mc{background:var(--nb-cielo-35);color:var(--nb-marino)}
 .hint{font-size:12.5px;color:var(--tinta-2);margin-top:6px}
 .hint b{color:var(--nb-marino)}
-.rejilla{overflow-x:auto;margin-top:12px}
-.rejilla table{min-width:520px}
-.rejilla th.v{text-align:center;font-size:11px;min-width:62px}
-.rejilla th.v small{display:block;font-weight:400;text-transform:none;letter-spacing:0;max-width:90px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 auto}
-.rejilla td{padding:5px 7px;vertical-align:middle}
-.rejilla td.c{text-align:center}
-.rejilla .lab{font-size:13px} .rejilla .lab b{color:var(--nb-marino)}
-.rejilla .fr{font-size:11.5px;font-weight:650;white-space:nowrap}
-.mk{width:44px;height:38px;border:1px solid var(--linea);border-radius:8px;background:#fff;font-size:17px;font-weight:700;color:var(--tinta-2)}
-.mk.s{background:#E6F6F3;border-color:var(--nb-menta);color:#1E6B5A}
-.mk.n{background:#FDEEF2;border-color:var(--nb-rosa);color:#8E1E3C}
-.escala.compacta{grid-template-columns:repeat(5,1fr) 1.4fr}
+.escala.compacta{grid-template-columns:repeat(5,1fr)}
 .escala.compacta button{min-height:auto;text-align:center;padding:9px 4px}
 .escala.compacta button b{font-size:17px;margin:0}
 .escala.compacta button.na{font-size:11.5px}
 .ancla-sel{font-size:12.5px;color:var(--nb-marino);margin-top:7px;background:var(--papel);padding:6px 10px;border-radius:7px}
 .lnk{background:none;border:0;color:var(--nb-286-75);font-size:12.5px;padding:4px 0;text-decoration:underline}
-.calc{font-size:11.5px;color:var(--tinta-2);margin-left:6px}
 .notaitem.req input{border-color:var(--nb-naranja)}
-@media(max-width:900px){.escala.compacta{grid-template-columns:repeat(5,1fr)}.escala.compacta button.na{grid-column:1/-1}}
 </style>
 
 <header class="top">
@@ -444,7 +440,7 @@ async function api(accion, extra={}){
    ESTADO — una sola evaluación por jornada.
    Los médicos son el contexto observado (mínimo 4).
    ========================================================= */
-let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}, modalidad:'completa', marcas:{}};
+let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}, modalidad:'completa'};
 let VER_ANCLAS = {}, VER_NOTA = {};
 let ANCLAS_SIEMPRE = false;
 try{ ANCLAS_SIEMPRE = localStorage.getItem('cj-anclas')==='1'; }catch(e){}
@@ -454,9 +450,9 @@ const esc = t => String(t??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':
 const nuevoMedico = () => ({nombre:'', especialidad:'Pediatría', tier_emc:''});
 
 const FRECS = [
-  {v:'siempre',       t:'En todas',    d:'Sostuvo la conducta en las cuatro visitas'},
-  {v:'inconsistente', t:'En algunas',  d:'Apareció en unas visitas y en otras no'},
-  {v:'no',            t:'En ninguna',  d:'No se presentó en ninguna visita'}
+  {v:'siempre',       t:'Constante · +90%', d:'La sostuvo prácticamente en toda la jornada'},
+  {v:'inconsistente', t:'En algunas',       d:'Apareció en unas visitas y en otras no'},
+  {v:'no',            t:'No lo hizo',       d:'Hubo ocasión y no la mostró en la jornada'}
 ];
 
 $$('.tabs button').forEach(b=>b.onclick=()=>{
@@ -507,9 +503,9 @@ $('#b-empezar').onclick = ()=>{
 function abrirInstrumento(){
   $('#paso-cab').style.display='none'; $('#paso-inst').style.display='block';
   $('#banner-metodo').innerHTML = esExpress()
-    ? `<b>Express: marca después de cada visita, califica al final.</b> Al salir de cada consultorio marca la rejilla
-       (✓ lo hizo · ✗ no lo hizo · vacío = la situación no se dio). La frecuencia se calcula sola. Al cierre del día
-       califica el <b>nivel del patrón</b>; la evidencia solo es obligatoria en niveles 1–2, nivel 5 o conductas inconsistentes.`
+    ? `<b>Express: se evalúa la tendencia de la jornada, no cada visita.</b> Para cada conducta marca primero la tendencia
+       (<b>Constante · +90%</b>, <b>En algunas</b>, <b>No lo hizo</b> o <b>No se dio la situación</b>) y luego el nivel con que la ejecutó.
+       "No lo hizo" pone nivel 1 automáticamente. La evidencia solo es obligatoria en niveles 1–2, nivel 5 o conductas "En algunas".`
     : `<b>Completa (semestral). Una sola evaluación para toda la jornada.</b> No califiques la última visita ni el promedio mental de las cuatro:
        califica el <b>patrón</b> que observaste durante el día. Para cada conducta indica el nivel y con qué frecuencia la sostuvo.`;
   pintarTodo(); window.scrollTo(0,0);
@@ -560,7 +556,7 @@ function avisarBorrador(){
     <div class="fila-btn" style="margin-top:8px"><button class="btn" id="b-retomar">Retomar</button>
     <button class="btn gh" id="b-descartar">Descartar</button></div></div>`;
   $('#b-retomar').onclick = ()=>{
-    J = {...J, ...b, marcas:b.marcas||{}, modalidad:b.modalidad||'completa'};
+    J = {...J, ...b, modalidad:b.modalidad||'completa'};
     usarModalidad(J.modalidad);
     $('#q_fuerte').value=b.cual?.fuerte||''; $('#q_mejora').value=b.cual?.mejora||''; $('#q_compromiso').value=b.cual?.compromiso||'';
     abrirInstrumento();
@@ -592,62 +588,19 @@ function pintarMedicos(){
       <span class="contador ${falta?'falta':''}" style="margin-left:0">
         ${falta?`Faltan <b>${falta}</b> visita(s) por registrar`:`<b>${n}</b> visitas registradas`}</span>
     </div>
-    ${esExpress()?rejillaHTML():''}`;
-  $('#panel-medicos').querySelectorAll('.mk').forEach(b=>b.onclick=()=>{
-    const id=b.dataset.id, v=+b.dataset.v;
-    const arr = (J.marcas[id] ||= []);
-    arr[v] = arr[v]==='s' ? 'n' : arr[v]==='n' ? null : 's';
-    aplicarMarcas(id); pintarMedicos(); pintarDim();
-  });
+`;
   $('#panel-medicos').querySelectorAll('[data-m]').forEach(el=>{
     const h = e=>{ J.medicos[+el.dataset.m][el.dataset.c] = e.target.value;
       if(el.dataset.c==='nombre') actualizarCierre(); };
-    el.oninput = h;
-    el.onchange = e=>{ h(e); if(esExpress() && el.dataset.c==='nombre') pintarMedicos(); };
+    el.oninput = h; el.onchange = h;
   });
   $('#panel-medicos').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
     const i = +b.dataset.del;
-    J.medicos.splice(i,1);
-    Object.keys(J.marcas).forEach(id=>{ J.marcas[id].splice(i,1); aplicarMarcas(id); });
-    pintarMedicos(); if(esExpress()) pintarDim(); actualizarCierre(); });
+    J.medicos.splice(i,1); pintarMedicos(); actualizarCierre(); });
   $('#b-addmed').onclick = ()=>{ J.medicos.push(nuevoMedico()); pintarMedicos(); };
 }
 
-/* ---------- rejilla por visita (Express) ----------
-   ✓ lo hizo · ✗ no lo hizo · vacío = la situación no se dio en esa visita.
-   De ahí sale la frecuencia sin depender de la memoria del final del día. */
-function conteoMarcas(id){
-  const arr = (J.marcas[id]||[]).slice(0, J.medicos.length);
-  const s = arr.filter(x=>x==='s').length, n = arr.filter(x=>x==='n').length;
-  return {s, n, t:s+n};
-}
-function frecDeMarcas(id){
-  const c = conteoMarcas(id);
-  if(!c.t) return null;
-  return c.n===0 ? 'siempre' : c.s===0 ? 'no' : 'inconsistente';
-}
-function aplicarMarcas(id){
-  const f = frecDeMarcas(id);
-  if(J.nivel[id]==='na') return;
-  if(f) J.frec[id] = f; else if(J.nivel[id]===undefined) delete J.frec[id];
-}
-const ETQ_FREC = {siempre:'En todas', inconsistente:'En algunas', no:'En ninguna'};
-function rejillaHTML(){
-  const meds = J.medicos;
-  return `<h2 style="margin-top:22px">Marca rápida por visita</h2>
-    <p class="sub">Al salir de cada consultorio, en el carro: un toque por conducta. ✓ lo hizo · ✗ no lo hizo · vacío = no se dio la situación.</p>
-    <div class="rejilla"><table><thead><tr><th>Conducta</th>
-      ${meds.map((m,i)=>`<th class="v">V${i+1}<small>${esc(m.nombre)||'—'}</small></th>`).join('')}<th class="v">Frecuencia</th></tr></thead><tbody>
-    ${ITEMS.map(it=>{
-      const f = frecDeMarcas(it.id), c = conteoMarcas(it.id);
-      const col = f==='inconsistente'?'var(--nb-naranja)':f==='no'?'var(--rojo)':'var(--verde)';
-      return `<tr><td class="lab"><b>${it.id}</b> ${esc(it.q)}${it.crit?' <span class="pill" style="font-size:10.5px">Crítico</span>':''}</td>
-        ${meds.map((m,i)=>{const v=(J.marcas[it.id]||[])[i];
-          return `<td class="c"><button class="mk ${v||''}" data-id="${it.id}" data-v="${i}" aria-label="${it.id} visita ${i+1}">${v==='s'?'✓':v==='n'?'✗':''}</button></td>`;}).join('')}
-        <td class="c fr" style="color:${f?col:'var(--tinta-2)'}">${f?`${ETQ_FREC[f]}<br><small style="font-weight:400">${c.s}/${c.t}</small>`:'—'}</td></tr>`;
-    }).join('')}
-    </tbody></table></div>`;
-}
+const ETQ_FREC = {siempre:'Constante · +90%', inconsistente:'En algunas', no:'No lo hizo'};
 
 /* ---------- avance ---------- */
 function itemsCalificados(){ return ITEMS.filter(it=>J.nivel[it.id]!==undefined).length; }
@@ -729,13 +682,17 @@ function pintarExpress(){
   const cont = $('#dim-cont');
   $('#b-cerrar').onclick = irAFeedback;
   cont.querySelectorAll('.escala button').forEach(b=>b.onclick=()=>{
-    const id = b.dataset.id;
-    J.nivel[id] = b.dataset.v==='na' ? 'na' : +b.dataset.v;
-    if(b.dataset.v==='na') delete J.frec[id];
-    else J.frec[id] = frecDeMarcas(id) || J.frec[id] || 'siempre';
+    const id = b.dataset.id; J.nivel[id] = +b.dataset.v;
+    if(!J.frec[id] || J.frec[id]==='no') J.frec[id] = 'siempre';
     pintarExpress();
   });
-  cont.querySelectorAll('.frec button').forEach(b=>b.onclick=()=>{ J.frec[b.dataset.id] = b.dataset.f; pintarExpress(); });
+  cont.querySelectorAll('.tend button').forEach(b=>b.onclick=()=>{
+    const id = b.dataset.id, t = b.dataset.t, prev = J.frec[id];
+    if(t==='na'){ J.nivel[id]='na'; delete J.frec[id]; }
+    else if(t==='no'){ J.frec[id]='no'; J.nivel[id]=1; }
+    else { J.frec[id]=t; if(prev==='no' || J.nivel[id]==='na') delete J.nivel[id]; }
+    pintarExpress();
+  });
   cont.querySelectorAll('[data-anclas]').forEach(b=>b.onclick=()=>{ VER_ANCLAS[b.dataset.anclas]=!VER_ANCLAS[b.dataset.anclas]; pintarExpress(); });
   cont.querySelectorAll('[data-vernota]').forEach(b=>b.onclick=()=>{ VER_NOTA[b.dataset.vernota]=true; pintarExpress();
     const inp = cont.querySelector(`.notaitem input[data-id="${b.dataset.vernota}"]`); if(inp) inp.focus(); });
@@ -744,25 +701,28 @@ function pintarExpress(){
 }
 
 function itemExpressHTML(it){
-  const sel = J.nivel[it.id], f = J.frec[it.id], calc = frecDeMarcas(it.id), c = conteoMarcas(it.id);
+  const sel = J.nivel[it.id], f = J.frec[it.id];
+  const tend = sel==='na' ? 'na' : f;
   const anclas = ANCLAS_SIEMPRE || VER_ANCLAS[it.id];
   const req = requiereEvidencia(it.id), nota = J.notas[it.id]||'';
   const verNota = req || nota || VER_NOTA[it.id];
+  const pideNivel = tend==='siempre' || tend==='inconsistente';
   return `<div class="item ${it.crit?'crit':''}">
     <div class="q"><b style="color:var(--nb-cielo)">${it.id}</b> ${it.q} ${it.crit?'<span class="pill">Crítico</span>':''}</div>
     <div class="obs">${it.obs}</div>
-    ${anclas
-      ? `<div class="escala">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}"><b>${k+1}</b>${t}</button>`).join('')}</div>
-         <div class="escala" style="grid-template-columns:1fr;margin-top:6px">
-         <button class="na ${sel==='na'?'on':''}" data-id="${it.id}" data-v="na">No observable en la jornada — excluir del puntaje</button></div>`
-      : `<div class="escala compacta">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}" title="${esc(t)}"><b>${k+1}</b></button>`).join('')}
-         <button class="na ${sel==='na'?'on':''}" data-id="${it.id}" data-v="na">No observable</button></div>
-         ${typeof sel==='number'?`<div class="ancla-sel"><b>${sel}</b> · ${it.a[sel-1]}</div>`:''}`}
-    ${ANCLAS_SIEMPRE?'':`<button class="lnk" data-anclas="${it.id}">${VER_ANCLAS[it.id]?'Ocultar niveles':'Ver los 5 niveles'}</button>`}
-    ${(sel!==undefined && sel!=='na')?`<div class="frec"><span class="et">¿En cuántas visitas?</span>
-      ${FRECS.map(x=>`<button data-id="${it.id}" data-f="${x.v}" class="${f===x.v?'on':''}" title="${x.d}">${x.t}</button>`).join('')}
-      <span class="calc">${calc?(f===calc?`calculada de la rejilla (${c.s}/${c.t})`:`la rejilla dice "${ETQ_FREC[calc]}" (${c.s}/${c.t}) — ajustada a mano`):'sin marcas en la rejilla'}</span></div>`:''}
-    ${verNota
+    <div class="tend">
+      ${FRECS.map(x=>`<button data-id="${it.id}" data-t="${x.v}" data-f="${x.v}" class="${tend===x.v?'on':''}" title="${x.d}">${x.t}</button>`).join('')}
+      <button data-id="${it.id}" data-t="na" class="na ${tend==='na'?'on':''}" title="Nadie objetó, no hubo ocasión, etc. Se excluye del puntaje">No se dio la situación</button>
+    </div>
+    ${pideNivel ? `<div class="et-nivel">¿Con qué nivel la ejecutó?</div>
+      ${anclas
+        ? `<div class="escala">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}"><b>${k+1}</b>${t}</button>`).join('')}</div>`
+        : `<div class="escala compacta">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}" title="${esc(t)}"><b>${k+1}</b></button>`).join('')}</div>
+           ${typeof sel==='number'?`<div class="ancla-sel"><b>${sel}</b> · ${it.a[sel-1]}</div>`:''}`}
+      ${ANCLAS_SIEMPRE?'':`<button class="lnk" data-anclas="${it.id}">${VER_ANCLAS[it.id]?'Ocultar niveles':'Ver los 5 niveles'}</button>`}`
+    : tend==='no' ? `<div class="ancla-sel" style="background:#FDEEF2;color:#8E1E3C"><b>Nivel 1</b> · ${it.a[0]}</div>`
+    : tend==='na' ? `<div class="ancla-sel" style="color:var(--tinta-2)">Excluida del puntaje de esta jornada.</div>` : ''}
+    ${tend===undefined ? '' : verNota
       ? `<div class="notaitem ${req&&!nota.trim()?'req':''}"><input type="text" data-id="${it.id}" value="${esc(nota)}"
           placeholder="${req?'Evidencia requerida: frase textual y en qué visita ocurrió':'Evidencia observada (opcional)'}"></div>`
       : `<button class="lnk" data-vernota="${it.id}">+ evidencia</button>`}
@@ -786,7 +746,7 @@ function itemHTML(it){
     <div class="escala">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}"><b>${k+1}</b>${t}</button>`).join('')}</div>
     <div class="escala" style="grid-template-columns:1fr;margin-top:6px">
       <button class="na ${sel==='na'?'on':''}" data-id="${it.id}" data-v="na">No observable en la jornada — excluir del puntaje</button></div>
-    ${(sel!==undefined && sel!=='na')?`<div class="frec"><span class="et">¿En cuántas visitas?</span>
+    ${(sel!==undefined && sel!=='na')?`<div class="frec"><span class="et">Tendencia en la jornada</span>
       ${FRECS.map(x=>`<button data-id="${it.id}" data-f="${x.v}" class="${f===x.v?'on':''}" title="${x.d}">${x.t}</button>`).join('')}</div>`:''}
     <div class="notaitem"><input type="text" data-id="${it.id}" value="${esc(J.notas[it.id]||'')}"
       placeholder="Evidencia observada (frase textual, en qué visita ocurrió)"></div>
@@ -848,7 +808,7 @@ function retosDe(a){
     out.push({dim:e.dim, dimNom:d.nom, p:e.nivel, causa:'Conducta inconsistente entre visitas',
       t:`Estandarizar ${e.id}`,
       d:`En la jornada esta conducta apareció en unas visitas y en otras no: la habilidad existe, la disciplina de aplicarla siempre no. Conviértela en paso fijo del guion, no en algo que sale cuando el médico es cómodo.`,
-      m:`Próximo acompañamiento: ${e.id} debe registrarse como "en todas" las visitas. Se mide por constancia, no por nivel.`});
+      m:`Próximo acompañamiento: ${e.id} debe registrarse como "Constante · +90%". Se mide por constancia, no por nivel.`});
   }
   return out;
 }
@@ -867,7 +827,7 @@ $('#b-calcular').onclick = async ()=>{
       item_nivel:J.nivel, item_frecuencia:J.frec, notas:J.notas,
       por_dimension:a.porDim, puntaje_global:a.global, consistencia:a.consistencia,
       deficit_sistematico:a.sistematico, desempeno_erratico:a.erratico,
-      cualitativo:{...J.cual, modalidad:J.modalidad, ...(esExpress()?{marcas:J.marcas}:{})}}});
+      cualitativo:{...J.cual, modalidad:J.modalidad}}});
     estado={ok:true}; borrarBorrador(); cargarHistorial();
   }catch(e){ estado={ok:false,msg:e.message}; }
   b.disabled=false; b.textContent='Cerrar jornada y ver resultado';
@@ -913,7 +873,7 @@ function pintarResultado(a, estado){
   const c=J.cab, t=tierDe(a.global), retos=retosDe(a), cons=a.consistencia;
   const meds = J.medicos.filter(m=>m.nombre.trim());
   const lecturaCons = cons===null ? ''
-    : cons>=0.85 ? 'Ejecución uniforme: lo que hace, lo hace en todas las visitas. El puntaje representa su nivel real.'
+    : cons>=0.85 ? 'Ejecución uniforme: lo que hace, lo sostiene en toda la jornada. El puntaje representa su nivel real.'
     : cons>=0.65 ? 'Varias conductas aparecen solo en algunas visitas. Revisa si se caen con médicos difíciles o al final del día.'
     : 'Ejecución muy variable. El promedio engaña: en unas visitas trabaja bien y en otras no. Antes de enseñar técnica nueva, hay que estabilizar la que ya tiene.';
 
@@ -943,7 +903,7 @@ function pintarResultado(a, estado){
   </div>
 
   ${cons!==null?`<div class="card"><h2>Constancia durante la jornada</h2>
-    <div class="barra" style="margin-top:12px"><div>Índice de constancia<br><small>Conductas sostenidas en todas las visitas</small></div>
+    <div class="barra" style="margin-top:12px"><div>Índice de constancia<br><small>Conductas constantes (+90%) en la jornada</small></div>
       <div class="pista"><div class="fill" style="width:${cons*100}%;background:${cons>=0.85?'var(--nb-menta)':cons>=0.65?'var(--nb-cielo)':'var(--nb-naranja)'}"></div></div>
       <div class="val">${cons.toFixed(2)}</div></div>
     <p class="sub" style="margin-top:8px">${lecturaCons}</p></div>`:''}
@@ -951,7 +911,7 @@ function pintarResultado(a, estado){
   ${a.sistematico.length?`<div class="aviso rojo">
     <b>Déficit sistemático (${a.sistematico.length}).</b> Nivel bajo y sostenido en toda la jornada: no fue un mal momento, no lo sabe hacer. Requiere entrenamiento, no recordatorio.
     <ul style="margin:8px 0 0;padding-left:20px">${a.sistematico.slice(0,8).map(x=>
-      `<li><b>${x.id}</b> — ${esc(x.q)} · nivel ${x.nivel}${x.nunca?' · no apareció en ninguna visita':''}${x.crit?' <span class="pill sis">Crítico</span>':''}</li>`).join('')}</ul></div>`:''}
+      `<li><b>${x.id}</b> — ${esc(x.q)} · nivel ${x.nivel}${x.nunca?' · no lo hizo en la jornada':''}${x.crit?' <span class="pill sis">Crítico</span>':''}</li>`).join('')}</ul></div>`:''}
 
   ${a.erratico.length?`<div class="aviso">
     <b>Conducta inconsistente (${a.erratico.length}).</b> Apareció en algunas visitas y en otras no: la habilidad existe pero no la aplica siempre. Es disciplina, no capacitación.
@@ -986,11 +946,11 @@ function pintarResultado(a, estado){
 
   <div class="card"><h2>Detalle de la evaluación</h2>
     <table style="margin-top:10px"><thead><tr><th style="width:44%">Conducta</th><th style="width:60px;text-align:center">Nivel</th>
-      <th style="width:110px">Frecuencia</th><th>Evidencia observada</th></tr></thead><tbody>
+      <th style="width:120px">Tendencia</th><th>Evidencia observada</th></tr></thead><tbody>
     ${DIMS.map(d=>`<tr><td colspan="4" style="background:var(--papel);font-weight:650;color:var(--nb-marino);font-size:12px">${d.cod}. ${d.nom.toUpperCase()} — ${a.porDim[d.cod]===null?'—':a.porDim[d.cod].toFixed(2)}</td></tr>`
       + d.items.map(it=>{
         const n=a.nivel[it.id], f=a.frec[it.id];
-        const et = f==='siempre'?'En todas':f==='inconsistente'?'En algunas':f==='no'?'En ninguna':'—';
+        const et = ETQ_FREC[f] || '—';
         const col = f==='inconsistente'?'var(--nb-naranja)':(typeof n==='number'&&n<=2.5?'var(--rojo)':'var(--tinta-2)');
         return `<tr><td><b>${it.id}</b> ${it.q}${it.crit?' <span class="pill">Crítico</span>':''}</td>
         <td class="n">${n===undefined?'—':n==='na'?'N/O':n}</td>
@@ -1132,7 +1092,7 @@ async function verJornada(id){
     J.medicos = (j.medicos||[]).map(m=>({nombre:m.nombre||'', especialidad:m.especialidad||'', tier_emc:m.tier_emc||''}));
     J.nivel = j.item_nivel||{}; J.frec = j.item_frecuencia||{}; J.notas = j.notas||{};
     J.cual = j.cualitativo||{};
-    J.modalidad = J.cual.modalidad || 'completa'; J.marcas = J.cual.marcas || {};
+    J.modalidad = J.cual.modalidad || 'completa';
     usarModalidad(J.modalidad);
     $$('.tabs button').forEach(x=>x.classList.remove('on'));
     $$('.tabs button')[0].classList.add('on');
@@ -1165,7 +1125,7 @@ $('#b-csv').onclick = ()=>{
 /* ---------- método ---------- */
 $('#v-guia').innerHTML = `
 <div class="card"><h2>Dos modalidades: Express y Completa</h2>
-<p class="sub" style="margin-top:8px"><b>Express — ciclo a ciclo.</b> ${DIMS_EXPRESS.reduce((s,d)=>s+d.items.length,0)} conductas: las 10 críticas más una por cada dimensión que no tenía crítica (B1, objeción fusionada y G1). Después de cada visita se marca una rejilla de ✓/✗ y la frecuencia se calcula sola. Al cierre se califica el nivel con escala compacta; la evidencia es obligatoria solo en niveles 1–2, nivel 5 o conductas inconsistentes.</p>
+<p class="sub" style="margin-top:8px"><b>Express — ciclo a ciclo.</b> ${DIMS_EXPRESS.reduce((s,d)=>s+d.items.length,0)} conductas: las 10 críticas más una por cada dimensión que no tenía crítica (B1, objeción fusionada y G1). Se evalúa la <b>tendencia de la jornada</b>, no cada visita: por conducta, una sola marca de tendencia (Constante · +90%, En algunas, No lo hizo o No se dio la situación) y el nivel con que la ejecutó. "No lo hizo" vale nivel 1; "No se dio la situación" se excluye del puntaje. La evidencia es obligatoria solo en niveles 1–2, nivel 5 o conductas "En algunas".</p>
 <p class="sub" style="margin-top:10px"><b>Completa — semestral.</b> Las 24 conductas con sus anclas completas. Se usa en la evaluación semestral y en los planes de mejora.</p>
 <table style="margin-top:14px"><thead><tr><th style="width:60px">Dim.</th><th>En la Express</th><th>Solo en la Completa</th></tr></thead><tbody>
 ${DIMS_COMPLETA.map((d,i)=>`<tr><td><b>${d.cod}</b> · ${d.peso}%</td>
@@ -1183,7 +1143,7 @@ ${DIMS_COMPLETA.map((d,i)=>`<tr><td><b>${d.cod}</b> · ${d.peso}%</td>
 <div class="card"><h2>Nivel y frecuencia: dos preguntas por conducta</h2>
 <p class="sub" style="margin-top:8px">Cada conducta se evalúa dos veces. Primero <b>qué tan bien</b> lo hizo (1 a 5, contra anclas conductuales). Después <b>en cuántas visitas</b> lo sostuvo. Ese segundo dato es el que convierte una evaluación en un diagnóstico.</p>
 <table style="margin-top:14px"><thead><tr><th style="width:190px">Lo que ves</th><th>Qué significa</th><th style="width:230px">Qué hacer</th></tr></thead><tbody>
-<tr><td><span class="pill sis">Déficit sistemático</span><br><small style="color:var(--tinta-2)">Nivel bajo · en todas</small></td>
+<tr><td><span class="pill sis">Déficit sistemático</span><br><small style="color:var(--tinta-2)">Nivel bajo · constante o no lo hizo</small></td>
 <td>No fue un mal momento: la conducta no está instalada. No sabe hacerlo.</td>
 <td>Entrenamiento y juego de roles. Recordárselo no sirve de nada.</td></tr>
 <tr><td><span class="pill err">Inconsistente</span><br><small style="color:var(--tinta-2)">En algunas visitas sí, en otras no</small></td>
@@ -1222,7 +1182,7 @@ ${DIMS_COMPLETA.map((d,i)=>`<tr><td><b>${d.cod}</b> · ${d.peso}%</td>
 <ol style="margin:12px 0 0;padding-left:20px;font-size:14px;line-height:1.75">
 <li><b>Cuatro visitas consecutivas, mismo día, mismo visitador.</b> Si se interrumpe la jornada, no hay sesión de feedback.</li>
 <li><b>El gerente no participa.</b> Se presenta y guarda silencio. Si rescata la visita, esa visita no cuenta.</li>
-<li><b>Registra al salir de cada visita</b>, aunque el nivel se califique al final: en la Express, con la rejilla de marcas; en la Completa, con notas. La memoria colapsa las visitas entre sí y solo sobrevive la última.</li>
+<li><b>Anota al salir de cada visita</b>, aunque la tendencia se marque al final. La memoria colapsa las visitas entre sí y solo sobrevive la última.</li>
 <li><b>Evidencia obligatoria en las conductas bajas.</b> Un 2 sin frase textual no se puede defender ni corregir.</li>
 <li><b>El feedback es sobre el patrón</b>, nunca sobre la última visita — que es la que más pesa en la memoria y la que menos representa.</li>
 </ol></div>
@@ -1232,7 +1192,7 @@ ${DIMS_COMPLETA.map((d,i)=>`<tr><td><b>${d.cod}</b> · ${d.peso}%</td>
 <div style="margin-top:14px">${DIMS_COMPLETA.map(d=>`<div class="barra"><div>${d.cod}. ${d.nom}</div>
   <div class="pista"><div class="fill" style="width:${d.peso*4}%"></div></div><div class="val">${d.peso}%</div></div>`).join('')}</div>
 <p class="sub" style="margin-top:14px"><b>Sondeo, argumentación y cierre suman 60%</b>: son las fases que predicen conversión a prescripción. <b>Planificación pesa 20%</b> porque sin lectura del Close Up no hay objetivo real, solo buenas intenciones.</p>
-<p class="sub" style="margin-top:10px"><b>Índice de constancia:</b> proporción de conductas marcadas "en todas las visitas". 1.00 significa ejecución uniforme. Bajo 0.65, el promedio global deja de ser representativo.</p>
+<p class="sub" style="margin-top:10px"><b>Índice de constancia:</b> proporción de conductas marcadas "Constante · +90%". 1.00 significa ejecución uniforme. Bajo 0.65, el promedio global deja de ser representativo.</p>
 <p class="sub" style="margin-top:10px"><b>No observable:</b> cuando la situación no dio lugar en la jornada (por ejemplo, ningún médico objetó). Sale del cálculo en vez de castigar.</p></div>
 
 <div class="card"><h2>Niveles</h2>
