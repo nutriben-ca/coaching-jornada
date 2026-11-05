@@ -370,15 +370,17 @@ function dibujarNivel(){
 }
 
 $('#b-rec').onclick = async ()=>{
-  if(REC.estado!=='listo') return;
+  if(REC.estado!=='listo') return;      // evita una segunda grabadora si se toca dos veces
   let meta; try{ meta = leerMeta('g'); }catch(e){ alertaSuave(e.message); return; }
   if(!ESTADO.transcripcion_lista){ alertaSuave('La grabación aún no está activa. Use Prueba con texto.'); return; }
   REC.mime = elegirMime();
   if(!REC.mime){ alertaSuave('Este navegador no permite grabar audio. Use Chrome o Safari actualizado.'); return; }
+  REC.estado = 'iniciando'; $('#b-rec').disabled = true; $('#b-rec').textContent = 'Iniciando…';
   try{
     REC.stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
-  }catch{ alertaSuave('No se pudo usar el micrófono. Revise el permiso del navegador.'); return; }
-  REC.meta = meta; REC.chunks = []; REC.blob = null; REC.oculto = false;
+  }catch{ REC.estado='listo'; $('#b-rec').disabled=false; $('#b-rec').textContent='Grabar'; alertaSuave('No se pudo usar el micrófono. Revise el permiso del navegador.'); return; }
+  REC.meta = meta; REC.blob = null; REC.oculto = false;
+  const trozos = []; REC.chunks = trozos;   // cada grabadora escribe solo en su propia lista
   // Algunos equipos (p. ej. Surface con arreglo de micrófonos) entregan 2–4 canales aunque se pida mono,
   // y el servicio de transcripción rechaza ese audio. Se mezcla a un solo canal antes de grabar.
   let streamGrabar = REC.stream, canales = '?';
@@ -397,11 +399,12 @@ $('#b-rec').onclick = async ()=>{
     dibujarNivel();
   }catch{ streamGrabar = REC.stream; }
   REC.rec = new MediaRecorder(streamGrabar, {mimeType:REC.mime, audioBitsPerSecond:32000});
-  REC.rec.ondataavailable = e=>{ if(e.data.size) REC.chunks.push(e.data); };
+  REC.rec.ondataavailable = e=>{ if(e.data.size) trozos.push(e.data); };
   REC.rec.start(1000);
   REC.canales = canales;
   await pedirWake();
   REC.estado='grabando'; REC.t0 = Date.now();
+  $('#b-rec').disabled = false;
   $('#b-rec').classList.add('grabando'); $('#b-rec').textContent='Grabando';
   $('#b-stop').disabled=false; $('#b-desc').disabled=false;
   $('#rec-msg').innerHTML = 'Primero lea el guion de consentimiento y espere el "sí" del médico.'
@@ -423,10 +426,21 @@ function liberar(){
 function detener(analizar){
   return new Promise(res=>{
     if(!REC.rec || REC.rec.state==='inactive'){ liberar(); res(); return; }
-    REC.rec.onstop = ()=>{
-      REC.blob = analizar ? new Blob(REC.chunks, {type:REC.mime.split(';')[0]}) : null;
+    const trozos = REC.chunks;
+    REC.rec.onstop = async ()=>{
+      REC.blob = analizar ? new Blob(trozos, {type:REC.mime.split(';')[0]}) : null;
       REC.chunks = []; liberar(); REC.estado='listo'; res();
-      if(analizar) enviar();
+      if(!analizar) return;
+      // Verificación: un WebM válido empieza con 1A 45 DF A3; un MP4 trae "ftyp" en los bytes 4–7.
+      const cab = new Uint8Array(await REC.blob.slice(0, 12).arrayBuffer());
+      const webm = cab[0]===0x1a && cab[1]===0x45 && cab[2]===0xdf && cab[3]===0xa3;
+      const mp4 = String.fromCharCode(...cab.slice(4, 8)) === 'ftyp';
+      if(!webm && !mp4){
+        REC.blob = null;
+        alertaSuave('La grabación quedó dañada en este equipo y no se envió. Recargue la página y grabe de nuevo; si se repite, use el teléfono.');
+        return;
+      }
+      enviar();
     };
     REC.rec.stop();
   });
