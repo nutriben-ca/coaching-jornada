@@ -379,19 +379,33 @@ $('#b-rec').onclick = async ()=>{
     REC.stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
   }catch{ alertaSuave('No se pudo usar el micrófono. Revise el permiso del navegador.'); return; }
   REC.meta = meta; REC.chunks = []; REC.blob = null; REC.oculto = false;
-  REC.rec = new MediaRecorder(REC.stream, {mimeType:REC.mime, audioBitsPerSecond:32000});
-  REC.rec.ondataavailable = e=>{ if(e.data.size) REC.chunks.push(e.data); };
-  REC.rec.start(1000);
+  // Algunos equipos (p. ej. Surface con arreglo de micrófonos) entregan 2–4 canales aunque se pida mono,
+  // y el servicio de transcripción rechaza ese audio. Se mezcla a un solo canal antes de grabar.
+  let streamGrabar = REC.stream, canales = '?';
+  try{ canales = REC.stream.getAudioTracks()[0]?.getSettings()?.channelCount ?? '?'; }catch{}
   try{
     REC.ctx = new (window.AudioContext||window.webkitAudioContext)();
-    REC.an = REC.ctx.createAnalyser(); REC.an.fftSize = 1024;
-    REC.ctx.createMediaStreamSource(REC.stream).connect(REC.an); dibujarNivel();
-  }catch{}
+    await REC.ctx.resume();
+    const src = REC.ctx.createMediaStreamSource(REC.stream);
+    const mono = REC.ctx.createGain();
+    mono.channelCount = 1; mono.channelCountMode = 'explicit'; mono.channelInterpretation = 'speakers';
+    const dest = REC.ctx.createMediaStreamDestination();
+    dest.channelCount = 1; dest.channelCountMode = 'explicit';
+    src.connect(mono); mono.connect(dest);
+    REC.an = REC.ctx.createAnalyser(); REC.an.fftSize = 1024; mono.connect(REC.an);
+    streamGrabar = dest.stream;
+    dibujarNivel();
+  }catch{ streamGrabar = REC.stream; }
+  REC.rec = new MediaRecorder(streamGrabar, {mimeType:REC.mime, audioBitsPerSecond:32000});
+  REC.rec.ondataavailable = e=>{ if(e.data.size) REC.chunks.push(e.data); };
+  REC.rec.start(1000);
+  REC.canales = canales;
   await pedirWake();
   REC.estado='grabando'; REC.t0 = Date.now();
   $('#b-rec').classList.add('grabando'); $('#b-rec').textContent='Grabando';
   $('#b-stop').disabled=false; $('#b-desc').disabled=false;
-  $('#rec-msg').textContent = 'Primero lea el guion de consentimiento y espere el "sí" del médico.';
+  $('#rec-msg').innerHTML = 'Primero lea el guion de consentimiento y espere el "sí" del médico.'
+    + `<br><span style="font-size:12px;color:var(--tinta-2)">Micrófono: ${esc(REC.canales)} canal(es) · grabando en mono</span>`;
   REC.timer = setInterval(()=>{
     const s = (Date.now()-REC.t0)/1000; $('#reloj').textContent = mmss(s);
     if(s >= MAX_SEG) detener(true);
