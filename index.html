@@ -224,6 +224,9 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
             <option value="completa">Completa — semestral · 24 conductas</option>
           </select>
           <div class="hint" id="c_hint"></div></div>
+        <div id="c_cert_box" style="display:none"><label class="f">Gerente directo del visitador</label>
+          <input type="text" id="c_gd" placeholder="Quien le hace el coaching ciclo a ciclo">
+          <div class="hint">La certificación la evalúa <b>otra persona</b>: el Gerente de Distrito de arriba no puede ser su gerente directo.</div></div>
       </div>
       <div id="borrador-aviso"></div>
       <div class="fila-btn" style="margin-top:18px">
@@ -258,6 +261,10 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
       <div style="margin-top:14px">
         <label class="f">Compromisos obtenidos en la jornada</label>
         <textarea id="q_compromiso" placeholder="Cuántos de los N médicos dejaron compromiso medible, y cuáles."></textarea></div>
+      <div id="cert-cierre" style="display:none;margin-top:14px">
+        <label class="f">Nota del examen de certificación en Academia (%)</label>
+        <input type="number" id="q_examen" min="0" max="100" step="1" style="max-width:160px" placeholder="0–100">
+        <div class="hint">Mínimo para certificar: <b><span class="u-examen"></span>%</b>. Si el examen aún no se ha presentado, déjalo vacío: el dictamen queda <b>pendiente</b>.</div></div>
       <div class="fila-btn" style="margin-top:18px">
         <button class="btn" id="b-calcular">Cerrar jornada y ver tendencias</button>
         <button class="btn gh" id="b-regresar">Volver a las visitas</button>
@@ -385,7 +392,40 @@ const MODOS = {
   express: {dims:DIMS_EXPRESS,  nom:'Express',  det:'ciclo a ciclo · 13 conductas'},
   completa:{dims:DIMS_COMPLETA, nom:'Completa', det:'semestral · 24 conductas'}
 };
-const TIPOS_COMPLETA = ['Evaluación semestral · certificación','Plan de mejora'];
+const TIPO_CERT = 'Evaluación semestral · certificación';
+const TIPOS_COMPLETA = [TIPO_CERT,'Plan de mejora'];
+
+/* ---------- Certificación de ventas (semestral) ----------
+   Se certifica con TRES condiciones, todas obligatorias:
+   1. Campo: evaluación Completa con global ≥ 3.50, ninguna conducta crítica ≤ 2.5 y constancia ≥ 0.65.
+   2. Conocimiento: examen de certificación en Academia ≥ CERT.examen.
+   3. Independencia: la Completa la evalúa alguien distinto del gerente directo.
+   Vigencia: hasta la siguiente evaluación semestral (6 meses).                         */
+const CERT = {global:3.50, critico:2.5, constancia:0.65, examen:80, meses:6};
+const esCert = () => J.cab && J.cab.tipo===TIPO_CERT;
+const normNom = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+function dictamenCert(a){
+  const c = J.cert||{}, motivos=[], ok=[];
+  const campo = a.global>=CERT.global && !a.criticos.length && a.consistencia!==null && a.consistencia>=CERT.constancia;
+  (a.global>=CERT.global ? ok : motivos).push(`Puntaje global ${a.global.toFixed(2)} (mínimo ${CERT.global.toFixed(2)})`);
+  (!a.criticos.length ? ok : motivos).push(a.criticos.length
+    ? `Conductas críticas en ${CERT.critico} o menos: ${a.criticos.map(x=>x.id).join(', ')}`
+    : 'Ninguna conducta crítica en nivel bajo');
+  (a.consistencia!==null && a.consistencia>=CERT.constancia ? ok : motivos)
+    .push(`Constancia ${a.consistencia===null?'sin dato':a.consistencia.toFixed(2)} (mínimo ${CERT.constancia.toFixed(2)})`);
+  const indep = !!c.gd && normNom(c.gd)!==normNom(J.cab.evaluador);
+  (indep ? ok : motivos).push(indep ? `Evaluador independiente (gerente directo: ${c.gd})` : 'El evaluador es el gerente directo, o no se registró');
+  const ex = (c.examen===''||c.examen===undefined||c.examen===null) ? null : +c.examen;
+  if(ex===null) motivos.push('Examen de Academia sin presentar');
+  else (ex>=CERT.examen ? ok : motivos).push(`Examen de Academia ${ex}% (mínimo ${CERT.examen}%)`);
+  const fallaFirme = motivos.some(m=>!m.startsWith('Examen de Academia sin presentar'));
+  const estado = fallaFirme ? 'no' : ex===null ? 'pendiente' : 'si';
+  let vigencia = null;
+  if(estado==='si' && J.cab.fecha){ const d=new Date(J.cab.fecha+'T12:00:00'); d.setMonth(d.getMonth()+CERT.meses); vigencia=d.toISOString().slice(0,10); }
+  return {estado, campo, examen:ex, gd:c.gd||'', motivos, ok, vigencia};
+}
+const ETQ_CERT = {si:'Certificado', no:'No certificado', pendiente:'Pendiente de examen'};
+const CLS_CERT = {si:'t1', no:'t4', pendiente:'t3'};
 
 let DIMS, ITEMS, TOTAL_ITEMS;
 function usarModalidad(m){
@@ -497,6 +537,13 @@ $('#b-empezar').onclick = ()=>{
   const cab = {mr:$('#c_mr').value, evaluador:$('#c_eval').value.trim(), fecha:$('#c_fecha').value,
     pais:$('#c_pais').value, ciudad:$('#c_ciudad').value.trim(), ciclo:$('#c_ciclo').value.trim(), tipo:$('#c_tipo').value};
   if(!cab.mr || !cab.evaluador){ $('#cab-error').textContent='Faltan visitador o gerente.'; return; }
+  if(cab.tipo===TIPO_CERT){
+    const gd = $('#c_gd').value.trim();
+    if($('#c_modo').value!=='completa'){ $('#cab-error').textContent='La certificación se evalúa con la modalidad Completa.'; return; }
+    if(!gd){ $('#cab-error').textContent='Registra quién es el gerente directo del visitador.'; return; }
+    if(normNom(gd)===normNom(cab.evaluador)){ $('#cab-error').textContent='El gerente directo no puede evaluar la certificación: debe hacerla otro gerente.'; return; }
+    J.cert = {...(J.cert||{}), gd};
+  } else J.cert = null;
   $('#cab-error').textContent=''; J.cab = cab;
   J.modalidad = $('#c_modo').value; usarModalidad(J.modalidad);
   if(!J.medicos.length) J.medicos = Array.from({length:MIN_VISITAS}, nuevoMedico);
@@ -532,7 +579,9 @@ function sugerirModalidad(cambioTipo){
   }
   $('#c_hint').innerHTML = txt;
 }
-$('#c_tipo').onchange = ()=>sugerirModalidad(true);
+$('#c_tipo').onchange = ()=>{ sugerirModalidad(true); $('#c_cert_box').style.display = $('#c_tipo').value===TIPO_CERT?'block':'none'; };
+$$('.u-examen').forEach(e=>e.textContent=CERT.examen);
+$('#q_examen').oninput = e=>{ if(J.cert) J.cert.examen = e.target.value; };
 $('#c_mr').addEventListener('change', ()=>sugerirModalidad(false));
 $('#c_fecha').addEventListener('change', ()=>sugerirModalidad(false));
 $('#c_modo').onchange = ()=>sugerirModalidad(false);
@@ -563,6 +612,7 @@ function avisarBorrador(){
     J = {...J, ...b, marcas:b.marcas||{}, modalidad:b.modalidad||'completa'};
     usarModalidad(J.modalidad);
     $('#q_fuerte').value=b.cual?.fuerte||''; $('#q_mejora').value=b.cual?.mejora||''; $('#q_compromiso').value=b.cual?.compromiso||'';
+    $('#q_examen').value = b.cert?.examen ?? '';
     abrirInstrumento();
   };
   $('#b-descartar').onclick = ()=>{ if(confirm('¿Descartar la jornada en curso? No se puede recuperar.')){ borrarBorrador(); avisarBorrador(); } };
@@ -710,6 +760,7 @@ function irAFeedback(){
     const sin = ITEMS.filter(it=>requiereEvidencia(it.id) && !(J.notas[it.id]||'').trim());
     if(sin.length && !confirm(`${sin.length} conducta(s) requieren evidencia y no la tienen (${sin.map(x=>x.id).join(', ')}). Un nivel extremo sin frase textual no se puede defender en el feedback. ¿Continuar de todos modos?`)) return;
   }
+  $('#cert-cierre').style.display = esCert() ? 'block' : 'none';
   $('#paso-inst').style.display='none'; $('#paso-cierre').style.display='block'; window.scrollTo(0,0);
 }
 
@@ -860,19 +911,24 @@ $('#b-calcular').onclick = async ()=>{
   const b=$('#b-calcular'); b.disabled=true; b.textContent='Guardando…';
   let estado;
   try{
-    await api('guardar',{jornada:{
+    await api('guardar',{jornada:payloadJornada(a)});
+    estado={ok:true}; borrarBorrador(); cargarHistorial();
+  }catch(e){ estado={ok:false,msg:e.message}; }
+  b.disabled=false; b.textContent='Cerrar jornada y ver resultado';
+  pintarResultado(a, estado);
+};
+
+function payloadJornada(a){
+  return {
       visitador:J.cab.mr, gerente:J.cab.evaluador, fecha:J.cab.fecha, pais:J.cab.pais,
       ciudad:J.cab.ciudad, ciclo:J.cab.ciclo, tipo:J.cab.tipo,
       medicos:J.medicos.filter(m=>m.nombre.trim()),
       item_nivel:J.nivel, item_frecuencia:J.frec, notas:J.notas,
       por_dimension:a.porDim, puntaje_global:a.global, consistencia:a.consistencia,
       deficit_sistematico:a.sistematico, desempeno_erratico:a.erratico,
-      cualitativo:{...J.cual, modalidad:J.modalidad, ...(esExpress()?{marcas:J.marcas}:{})}}});
-    estado={ok:true}; borrarBorrador(); cargarHistorial();
-  }catch(e){ estado={ok:false,msg:e.message}; }
-  b.disabled=false; b.textContent='Cerrar jornada y ver resultado';
-  pintarResultado(a, estado);
-};
+      cualitativo:{...J.cual, modalidad:J.modalidad, ...(esExpress()?{marcas:J.marcas}:{}),
+        ...(esCert()?{cert:dictamenCert(a)}:{})}};
+}
 
 const SPIN = [
  {id:'C1', l:'S', nom:'Situación',          nota:'Menos es mejor: llegar informado.'},
@@ -906,6 +962,25 @@ function panelSPIN(a){
       <div class="val">${x.p.toFixed(1)}</div></div>`).join('')}
     </div>
     <p class="sub" style="margin-top:12px"><b>Lectura:</b> ${lectura}</p>
+  </div>`;
+}
+
+function panelCert(d){
+  return `<div class="card"><h2>Certificación de ventas · semestral</h2>
+    <div class="fila-btn" style="margin-top:10px">
+      <span class="tier ${CLS_CERT[d.estado]}" style="font-size:15px;padding:7px 18px">${ETQ_CERT[d.estado]}</span>
+      ${d.vigencia?`<span class="sub">Vigente hasta <b>${d.vigencia}</b> o hasta la siguiente evaluación semestral.</span>`:''}
+      ${d.estado==='pendiente'?'<span class="sub">El campo cumple. Falta la nota del examen de Academia para emitir el dictamen.</span>':''}
+    </div>
+    ${d.estado==='pendiente'?`<div class="fila-btn no-print" style="margin-top:12px">
+      <input type="number" id="r_examen" min="0" max="100" placeholder="Nota %" style="max-width:130px">
+      <button class="btn sec" id="b-reg-examen">Registrar nota y emitir dictamen</button>
+      <span class="sub" id="reg-msg"></span></div>`:''}
+    <table style="margin-top:12px"><tbody>
+      ${d.ok.map(x=>`<tr><td style="width:28px;color:var(--verde);font-weight:700">✓</td><td>${esc(x)}</td></tr>`).join('')}
+      ${d.motivos.map(x=>`<tr><td style="width:28px;color:var(--rojo);font-weight:700">✗</td><td>${esc(x)}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="sub" style="margin-top:10px">Se certifica solo si se cumplen las tres condiciones: campo (global ≥ ${CERT.global.toFixed(2)}, ninguna crítica ≤ ${CERT.critico}, constancia ≥ ${CERT.constancia.toFixed(2)}), examen de Academia ≥ ${CERT.examen}% y evaluador distinto del gerente directo.</p>
   </div>`;
 }
 
@@ -960,6 +1035,8 @@ function pintarResultado(a, estado){
 
   ${(!a.sistematico.length && !a.erratico.length)?`<div class="aviso verde">
     <b>Sin déficits sistemáticos ni conductas inconsistentes.</b> Ejecución pareja y por encima del umbral en toda la jornada.</div>`:''}
+
+  ${esCert()?panelCert(dictamenCert(a)):''}
 
   ${panelSPIN(a)}
 
@@ -1017,6 +1094,16 @@ function pintarResultado(a, estado){
     window.print(); setTimeout(()=>document.title=prev,800);
   };
   $('#b-nueva').onclick = ()=>location.reload();
+  const br = $('#b-reg-examen');
+  if(br) br.onclick = async ()=>{
+    const v = $('#r_examen').value;
+    if(v==='' || +v<0 || +v>100){ $('#reg-msg').textContent='Escribe una nota entre 0 y 100.'; return; }
+    J.cert = {...(J.cert||{}), examen:v};
+    br.disabled = true; $('#reg-msg').textContent='Guardando…';
+    const a2 = analizar();
+    try{ await api('guardar',{jornada:payloadJornada(a2)}); cargarHistorial(); pintarResultado(a2, {ok:true}); }
+    catch(e){ br.disabled=false; $('#reg-msg').innerHTML=`<span style="color:var(--rojo)">${esc(e.message)}</span>`; }
+  };
   window.scrollTo(0,0);
 }
 
@@ -1118,7 +1205,7 @@ function tablaHist(datos){
       return `<tr><td>${h.fecha}</td><td>${esc(h.visitador)}<br><small style="color:var(--tinta-2)">${esc(h.ciudad)||''}${h.ciclo?' · '+esc(h.ciclo):''}</small></td>
       <td class="n">${h.n_visitas}</td><td>${esc(h.gerente)}</td>
       <td class="n">${h.global.toFixed(2)}</td><td class="n">${h.cons!==null?h.cons.toFixed(2):'—'}</td>
-      <td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span><br><span class="pill ${h.modalidad==='express'?'mx':'mc'}" style="font-size:10.5px;margin-top:4px">${MODOS[h.modalidad]?.nom||'Completa'}</span></td>
+      <td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span><br><span class="pill ${h.modalidad==='express'?'mx':'mc'}" style="font-size:10.5px;margin-top:4px">${MODOS[h.modalidad]?.nom||'Completa'}</span>${h.cual?.cert?`<br><span class="tier ${CLS_CERT[h.cual.cert.estado]}" style="font-size:10.5px;display:inline-block;margin-top:4px">${ETQ_CERT[h.cual.cert.estado]}</span>`:''}</td>
       <td><button class="btn gh" style="padding:5px 12px;font-size:12.5px" data-ver="${h.id}">Ver</button></td></tr>`;}).join('')}
     </tbody></table></div>`;
 }
@@ -1133,6 +1220,7 @@ async function verJornada(id){
     J.nivel = j.item_nivel||{}; J.frec = j.item_frecuencia||{}; J.notas = j.notas||{};
     J.cual = j.cualitativo||{};
     J.modalidad = J.cual.modalidad || 'completa'; J.marcas = J.cual.marcas || {};
+    J.cert = J.cual.cert ? {gd:J.cual.cert.gd, examen:J.cual.cert.examen} : null;
     usarModalidad(J.modalidad);
     $$('.tabs button').forEach(x=>x.classList.remove('on'));
     $$('.tabs button')[0].classList.add('on');
@@ -1149,12 +1237,13 @@ $('#b-csv').onclick = ()=>{
   const datos = f ? HIST.filter(h=>h.visitador===f) : HIST;
   if(!datos.length) return;
   const cols=['fecha','visitador','gerente','pais','ciudad','ciclo','tipo','modalidad','n_visitas','global','consistencia',
-    ...DIMS_COMPLETA.map(d=>'dim_'+d.cod),'deficit_sistematico','inconsistente','patron_solido','a_cambiar','compromisos'];
+    ...DIMS_COMPLETA.map(d=>'dim_'+d.cod),'deficit_sistematico','inconsistente','patron_solido','a_cambiar','compromisos','certificacion','examen_academia','vigencia'];
   const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
   const filas=datos.map(h=>[h.fecha,h.visitador,h.gerente,h.pais,h.ciudad,h.ciclo,h.tipo,h.modalidad,h.n_visitas,h.global,h.cons,
     ...DIMS_COMPLETA.map(d=>h.por_dim?.[d.cod]??''),
     (h.sis||[]).map(x=>x.id).join(' '), (h.err||[]).map(x=>x.id).join(' '),
-    h.cual?.fuerte,h.cual?.mejora,h.cual?.compromiso].map(q).join(','));
+    h.cual?.fuerte,h.cual?.mejora,h.cual?.compromiso,
+    h.cual?.cert?ETQ_CERT[h.cual.cert.estado]:'', h.cual?.cert?.examen??'', h.cual?.cert?.vigencia??''].map(q).join(','));
   const csv='\ufeff'+cols.join(',')+'\n'+filas.join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
@@ -1167,6 +1256,7 @@ $('#v-guia').innerHTML = `
 <div class="card"><h2>Dos modalidades: Express y Completa</h2>
 <p class="sub" style="margin-top:8px"><b>Express — ciclo a ciclo.</b> ${DIMS_EXPRESS.reduce((s,d)=>s+d.items.length,0)} conductas: las 10 críticas más una por cada dimensión que no tenía crítica (B1, objeción fusionada y G1). Después de cada visita se marca una rejilla de ✓/✗ y la frecuencia se calcula sola. Al cierre se califica el nivel con escala compacta; la evidencia es obligatoria solo en niveles 1–2, nivel 5 o conductas inconsistentes.</p>
 <p class="sub" style="margin-top:10px"><b>Completa — semestral.</b> Las 24 conductas con sus anclas completas. Se usa en la evaluación semestral que acompaña la certificación de ventas y en los planes de mejora.</p>
+<p class="sub" style="margin-top:10px"><b>Certificación de ventas.</b> Se emite con tres condiciones, todas obligatorias: (1) campo — Completa con global ≥ ${CERT.global.toFixed(2)}, ninguna conducta crítica ≤ ${CERT.critico} y constancia ≥ ${CERT.constancia.toFixed(2)}; (2) conocimiento — examen de Academia ≥ ${CERT.examen}%; (3) independencia — la evalúa un gerente distinto del gerente directo. Vigencia: ${CERT.meses} meses. Sin examen, el dictamen queda pendiente.</p>
 <table style="margin-top:14px"><thead><tr><th style="width:60px">Dim.</th><th>En la Express</th><th>Solo en la Completa</th></tr></thead><tbody>
 ${DIMS_COMPLETA.map((d,i)=>`<tr><td><b>${d.cod}</b> · ${d.peso}%</td>
 <td>${DIMS_EXPRESS[i].items.map(it=>`<b>${it.id}</b> ${it.q}`).join('<br>')}</td>
