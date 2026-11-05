@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autoanálisis de Visita — Nutribén CA</title>
+<style>
+:root{
+  --nb-marino:#0033A1; --nb-286-75:#3F58A7; --nb-medio:#6C8CC7;
+  --nb-cielo:#00A0DF; --nb-cielo-56:#8CC8ED; --nb-cielo-35:#BADDF4;
+  --nb-lavanda:#A9A5D1; --nb-menta:#7EC7BD; --nb-rosa:#E7B0D1; --nb-naranja:#FAA334;
+  --tinta:#0C1A33; --tinta-2:#4A5B78; --linea:#D9E2F0; --papel:#F4F7FC;
+  --verde:#2E8B72; --rojo:#B0264A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);
+  font-family:"Segoe UI",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.01em}
+
+header.top{background:var(--nb-marino);color:#fff;padding:12px 16px;display:flex;
+  align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+header.top .marca{font-size:18px;font-weight:700;letter-spacing:-.02em}
+header.top .marca span{color:var(--nb-cielo-56);font-weight:400}
+header.top .beta{font-size:11px;font-weight:700;background:var(--nb-naranja);color:#3B2600;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:2px}
+.tabs{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.tabs button{background:rgba(255,255,255,.1);color:#fff;border:0;padding:7px 13px;border-radius:99px;font-size:13.5px}
+.tabs button.on{background:var(--nb-cielo);font-weight:600}
+.wrap{max-width:980px;margin:0 auto;padding:18px 16px 60px}
+.vista{display:none} .vista.on{display:block}
+
+.card{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:18px;margin-bottom:14px}
+.card > h2{font-size:16px;color:var(--nb-marino);margin-bottom:4px}
+.sub{color:var(--tinta-2);font-size:13.5px}
+label.f{display:block;font-size:12px;font-weight:650;color:var(--tinta-2);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+input[type=text],input[type=password],input[type=date],select,textarea{
+  width:100%;padding:10px 11px;border:1px solid var(--linea);border-radius:7px;background:#fff}
+textarea{resize:vertical;min-height:220px;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--nb-cielo);outline-offset:1px;border-color:transparent}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:720px){.g2,.g3{grid-template-columns:1fr} .g4{grid-template-columns:1fr 1fr}}
+
+.btn{background:var(--nb-marino);color:#fff;border:0;padding:11px 20px;border-radius:8px;font-weight:600}
+.btn.sec{background:#fff;color:var(--nb-marino);border:1.5px solid var(--nb-marino)}
+.btn.gh{background:transparent;color:var(--tinta-2);border:1px solid var(--linea)}
+.btn.rojo{background:var(--rojo)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.fila-btn{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.aviso{background:#FFF6E8;border:1px solid var(--nb-naranja);border-radius:10px;padding:12px 15px;font-size:13.5px;margin-bottom:14px}
+.aviso.rojo{background:#FDEEF2;border-color:var(--nb-rosa)}
+.aviso.verde{background:#EDF7F4;border-color:var(--nb-menta)}
+.aviso.azul{background:#EEF6FC;border-color:var(--nb-cielo-56)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:99px;background:var(--nb-cielo-35);color:var(--nb-marino);font-weight:650;white-space:nowrap}
+.pill.crit{background:#FFF1DC;color:#9A5C05}
+.pill.ok{background:#E3F3EF;color:#1F6B57} .pill.no{background:#FDEEF2;color:#8E1E3C}
+
+/* guion de consentimiento */
+.guion{border-left:4px solid var(--nb-cielo);background:#EEF6FC;border-radius:0 10px 10px 0;padding:14px 16px;font-size:16px;line-height:1.45;margin:10px 0 4px}
+.guion b{color:var(--nb-marino)}
+
+/* grabadora */
+.grabadora{text-align:center;padding:26px 16px}
+.rec{width:116px;height:116px;border-radius:50%;border:0;background:var(--rojo);color:#fff;font-weight:700;font-size:15px;
+  box-shadow:0 0 0 8px #F7DDE5;transition:transform .15s}
+.rec:active{transform:scale(.96)}
+.rec.grabando{animation:latido 1.6s infinite}
+@keyframes latido{0%,100%{box-shadow:0 0 0 8px #F7DDE5}50%{box-shadow:0 0 0 18px #FBEDF2}}
+.reloj{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin:16px 0 4px;color:var(--nb-marino)}
+canvas#nivel{width:100%;max-width:420px;height:46px;display:block;margin:6px auto 14px}
+.pasos-proc{list-style:none;padding:0;margin:14px auto 0;max-width:360px;text-align:left}
+.pasos-proc li{padding:7px 0;color:var(--tinta-2);display:flex;gap:10px;align-items:center}
+.pasos-proc li .d{width:10px;height:10px;border-radius:50%;background:var(--linea);flex:none}
+.pasos-proc li.on{color:var(--tinta);font-weight:600} .pasos-proc li.on .d{background:var(--nb-cielo);animation:latido2 1s infinite}
+.pasos-proc li.ok .d{background:var(--nb-menta)}
+@keyframes latido2{50%{opacity:.35}}
+
+/* ficha */
+.marcador{display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  background:linear-gradient(100deg,var(--nb-marino),var(--nb-286-75));color:#fff;border-radius:10px;padding:18px 20px;margin-bottom:14px}
+.marcador .big{font-size:44px;font-weight:800;line-height:1;letter-spacing:-.03em}
+.marcador .of{font-size:15px;opacity:.65}
+.marcador .meta{font-size:13.5px;opacity:.9}
+.marcador .meta b{font-size:16px;display:block;opacity:1}
+.marcador .der{margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+@media(max-width:720px){.marcador .der{margin-left:0;align-items:flex-start}}
+.etq{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:720px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:12px 13px;border-top:4px solid var(--linea)}
+.kpi.ok{border-top-color:var(--nb-menta)} .kpi.no{border-top-color:var(--nb-rosa)} .kpi.med{border-top-color:var(--nb-naranja)}
+.kpi .v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--nb-marino);line-height:1.15}
+.kpi .l{font-size:12px;color:var(--tinta-2);margin-top:2px}
+.kpi .m{font-size:11.5px;color:var(--tinta-2);margin-top:5px;border-top:1px dashed var(--linea);padding-top:5px}
+
+.reto{border:1px solid var(--linea);border-left:4px solid var(--nb-naranja);border-radius:10px;padding:15px 17px;margin-bottom:14px;background:#fff}
+.reto .etq{color:#C97E10}
+.reto h4{margin:3px 0 6px;font-size:16px;color:var(--nb-marino)}
+.reto p{margin:0 0 8px;font-size:14px;color:var(--tinta-2)}
+.reto .med{font-size:13px;background:var(--papel);padding:8px 10px;border-radius:7px;margin-top:8px}
+.fuerte{border-left-color:var(--nb-menta)} .fuerte .etq{color:var(--verde)}
+
+.barra{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin-bottom:8px;font-size:13.5px}
+.barra .pista{background:var(--papel);border-radius:99px;height:17px;overflow:hidden}
+.barra .fill{height:100%;border-radius:99px;background:var(--nb-cielo)}
+.barra .val{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+@media(max-width:720px){.barra{grid-template-columns:1fr 40px;row-gap:3px;margin-bottom:11px}.barra > div:first-child{grid-column:1/-1}}
+.kpi .v.t{font-size:17px;line-height:1.25}
+
+.cond{border:1px solid var(--linea);border-radius:10px;padding:12px 14px;margin-bottom:9px;background:#fff;display:grid;grid-template-columns:48px 1fr;gap:12px}
+.cond.crit{border-left:4px solid var(--nb-naranja)}
+.cond .n{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff}
+.n1,.n2{background:var(--rojo)} .n3{background:var(--nb-naranja)} .n4{background:var(--nb-cielo)} .n5{background:var(--verde)} .nx{background:var(--linea);color:var(--tinta-2)!important;font-size:12px!important}
+.cond .q{font-weight:600}
+.cond .anc{font-size:13px;color:var(--nb-marino);margin-top:2px}
+.cond .ev{font-size:13px;color:var(--tinta-2);margin-top:5px;font-style:italic}
+.dimtit{font-size:13px;font-weight:700;color:var(--nb-marino);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--linea);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2)}
+tr.clic{cursor:pointer} tr.clic:hover td{background:#F8FAFE}
+td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
+.tabla-scroll{overflow-x:auto}
+.oculto{display:none!important}
+details summary{cursor:pointer;color:var(--nb-marino);font-weight:600}
+
+@media print{
+  header.top,.no-print{display:none!important}
+  body{background:#fff;font-size:10.5pt}
+  .wrap{max-width:none;padding:0}
+  .card,.reto,.cond,.kpi{break-inside:avoid}
+  .marcador{background:#fff!important;color:var(--tinta)!important;border:2px solid var(--nb-marino)}
+  .n1,.n2,.n3,.n4,.n5,.kpi,.pill,.barra .fill{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="marca">Autoanálisis de Visita <span>· Nutribén CA</span><span class="beta">BETA</span></div>
+  <nav class="tabs oculto" id="tabs">
+    <button data-v="grabar" class="on">Grabar</button>
+    <button data-v="fichas">Fichas</button>
+    <button data-v="texto">Prueba con texto</button>
+  </nav>
+</header>
+
+<div class="wrap">
+
+<!-- ACCESO -->
+<section class="vista on" id="v-acceso">
+  <div class="card" style="max-width:430px;margin:36px auto">
+    <h2>Código de gerencia</h2>
+    <p class="sub">El mismo código de Acompañamiento a Campo.</p>
+    <div style="margin-top:14px"><label class="f">Código</label><input type="password" id="a_cod" autocomplete="off"></div>
+    <div class="fila-btn" style="margin-top:14px">
+      <button class="btn" id="b-entrar">Entrar</button>
+      <span class="sub" id="acc-error" style="color:var(--rojo)"></span>
+    </div>
+  </div>
+</section>
+
+<!-- GRABAR -->
+<section class="vista" id="v-grabar">
+  <div id="aviso-stt"></div>
+
+  <div id="g-datos">
+    <div class="card">
+      <h2>1 · Datos de la visita</h2>
+      <p class="sub">Se guarda solo la ficha de coaching. El audio y la transcripción se eliminan al terminar el análisis.</p>
+      <div class="grid g3" style="margin-top:14px" id="form-visita"></div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Antes de grabar</h2>
+      <p class="sub">El análisis solo se realiza si en la grabación se escucha que el médico acepta. Al iniciar, lea:</p>
+      <div class="guion">"Doctor, ¿me permite grabar esta visita? <b>Es solo para mi evaluación interna</b>: no guardamos la conversación, únicamente cómo lo hice yo."</div>
+      <ul class="sub" style="margin:10px 0 0;padding-left:18px">
+        <li>Ponga el teléfono boca arriba sobre el escritorio, entre usted y el médico.</li>
+        <li>No bloquee la pantalla ni cambie de aplicación mientras graba.</li>
+        <li>Si el médico dice que no, presione <b>Descartar</b>: no se envía nada.</li>
+      </ul>
+    </div>
+
+    <div class="card grabadora">
+      <button class="rec" id="b-rec">Grabar</button>
+      <div class="reloj" id="reloj">00:00</div>
+      <canvas id="nivel" width="840" height="92"></canvas>
+      <div class="fila-btn" style="justify-content:center">
+        <button class="btn" id="b-stop" disabled>Detener y analizar</button>
+        <button class="btn gh" id="b-desc" disabled>Descartar</button>
+      </div>
+      <p class="sub" id="rec-msg" style="margin-top:12px">Máximo 30 minutos por visita.</p>
+    </div>
+  </div>
+
+  <div id="g-proc" class="card grabadora oculto">
+    <h2 style="color:var(--nb-marino)">Analizando la visita</h2>
+    <p class="sub">Tarda entre 1 y 2 minutos. No cierre esta página.</p>
+    <ul class="pasos-proc" id="pasos-proc">
+      <li data-p="0"><span class="d"></span>Enviando audio</li>
+      <li data-p="1"><span class="d"></span>Transcribiendo y separando voces</li>
+      <li data-p="2"><span class="d"></span>Evaluando contra la rúbrica</li>
+      <li data-p="3"><span class="d"></span>Eliminando audio y transcripción</li>
+    </ul>
+    <div id="proc-error" class="oculto" style="margin-top:16px">
+      <div class="aviso rojo" id="proc-error-txt" style="text-align:left"></div>
+      <div class="fila-btn" style="justify-content:center">
+        <button class="btn" id="b-reint">Reintentar envío</button>
+        <button class="btn gh" id="b-desc2">Descartar grabación</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FICHA -->
+<section class="vista" id="v-ficha"><div id="ficha"></div></section>
+
+<!-- FICHAS -->
+<section class="vista" id="v-fichas">
+  <div class="card">
+    <h2>Fichas de autoanálisis</h2>
+    <p class="sub">Separadas de la evaluación de jornada. El puntaje usa solo las conductas que se pueden escuchar.</p>
+    <div class="fila-btn" style="margin-top:12px">
+      <select id="f-vis" style="max-width:260px"><option value="">Todo el equipo</option></select>
+      <button class="btn sec" id="b-listar">Actualizar</button>
+    </div>
+  </div>
+  <div class="card tabla-scroll" id="lista"><p class="sub">Cargando…</p></div>
+</section>
+
+<!-- PRUEBA CON TEXTO -->
+<section class="vista" id="v-texto">
+  <div class="card">
+    <h2>Prueba con texto</h2>
+    <p class="sub">Para calibrar sin grabar: pegue la conversación de un role-play, una línea por intervención, empezando con <b>V:</b> (visitador) o <b>M:</b> (médico). Los tiempos se estiman, así que apertura y silencios son aproximados.</p>
+    <div class="grid g3" style="margin-top:14px" id="form-texto"></div>
+    <div style="margin-top:12px"><textarea id="t-texto" placeholder="V: Doctor, ¿me permite grabar esta visita? Es solo para mi evaluación interna.&#10;M: Sí, adelante.&#10;V: …"></textarea></div>
+    <div class="fila-btn" style="margin-top:12px">
+      <button class="btn" id="b-texto">Analizar</button>
+      <button class="btn gh" id="b-ejemplo">Cargar ejemplo</button>
+      <span class="sub" id="t-msg"></span>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+const FN = 'https://lzljnszgqjxxufpkcolv.supabase.co/functions/v1/coaching-audio';
+const EQUIPO = ['Ricardo Flores','Kristel Madrid','Fernando Cruz','Osman Carbajal','Elsy Valencia','Fernando Urrutia'];
+const DIMS = [{"cod":"A","nom":"Planificación y lectura del Close Up","peso":20,"items":[{"id":"A1","q":"Lee la auditoría Close Up del médico antes de la visita","crit":true,"a":["No consulta el Close Up","Lo abrió pero no sabe qué prescribe el médico","Conoce el dato grueso: si receta o no receta","Conoce volumen, participación y competidor principal","Conoce el dato, la tendencia de los últimos ciclos y detecta de qué molécula o marca puede desplazar"]},{"id":"A2","q":"Construye el objetivo sobre el dato del Close Up","crit":true,"a":["No hay objetivo; \"vengo a saludar\"","Objetivo genérico, sin relación con lo que prescribe","Objetivo claro pero desconectado del dato de auditoría","Objetivo derivado del Close Up: producto a desplazar y meta numérica","Objetivo derivado del Close Up, medible, con plazo y alineado al objetivo del ciclo"]},{"id":"A3","q":"Conoce al médico y su etapa de adopción","crit":false,"a":["No sabe quién es más allá del nombre","Recuerda datos sueltos","Conoce historia y etapa; no la usa para decidir el mensaje","Define el mensaje según la etapa de adopción","Define mensaje y anticipa la objeción probable de ese perfil"]},{"id":"A4","q":"Material listo y secuenciado","crit":false,"a":["Improvisa; busca el material frente al médico","Lleva material pero desordenado","Material completo, sin secuencia pensada","Material completo y en la secuencia del objetivo","Material curado: descartó lo que no aplica a este médico"]},{"id":"A5","q":"Gestión de acceso y puntualidad","crit":false,"a":["Llega en mal horario; sin relación con el personal","Accede con dificultad, sin gestión previa","Accede sin fricción","Relación cultivada con el personal; se le da paso","El personal le facilita activamente tiempo y contexto del día"]}]},{"cod":"B","nom":"Apertura","peso":5,"items":[{"id":"B1","q":"Puente con la visita anterior","crit":false,"a":["No menciona la visita anterior","La menciona de forma genérica","Retoma el tema, no el compromiso","Retoma el compromiso y pregunta por el resultado","Retoma el compromiso, indaga el caso concreto y lo usa de puente al objetivo de hoy"]},{"id":"B2","q":"Declaración de propósito clara y breve","crit":false,"a":["Entra directo a producto sin encuadre","Encuadre largo o confuso","Encuadre claro pero centrado en la empresa","Encuadre breve y centrado en el paciente del médico","Encuadre breve que además obtiene permiso explícito de tiempo"]}]},{"cod":"C","nom":"Sondeo SPIN","peso":20,"items":[{"id":"C1","q":"S — Preguntas de Situación: pocas y ya informadas","crit":false,"a":["Interroga con datos que ya debía saber; el médico se impacienta","Muchas preguntas de situación, sin rumbo","Cantidad razonable, pero genéricas","Pocas y dirigidas al terreno donde vive el problema","Mínimas: llega informado y solo confirma lo que necesita para abrir el problema"]},{"id":"C2","q":"P — Preguntas de Problema: saca la insatisfacción explícita","crit":true,"a":["No indaga problemas; asume el que trae en el guion","Insinúa el problema en vez de preguntarlo","Pregunta y el médico reconoce una dificultad general","El médico nombra un problema concreto de su práctica","El médico nombra varios problemas y señala cuál le pesa más"]},{"id":"C3","q":"I — Preguntas de Implicación: amplía la consecuencia","crit":true,"a":["No las hace: pasa del problema directo al producto","Una implicación insinuada por el propio visitador, no por el médico","Pregunta por la consecuencia; respuesta superficial","El médico describe consecuencias clínicas o de manejo concretas","El médico encadena consecuencias y concluye solo que el problema le cuesta más de lo que creía"]},{"id":"C4","q":"N — Preguntas de Necesidad-beneficio: el médico enuncia el valor","crit":true,"a":["El visitador enuncia el beneficio por el médico","Pregunta retórica que el propio visitador responde","Pregunta bien formulada; el médico responde con cortesía","El médico enuncia el beneficio en sus propias palabras","El médico enuncia el beneficio y describe en qué paciente lo usaría"]},{"id":"C5","q":"Secuencia SPIN y escucha activa","crit":false,"a":["Sin secuencia; monólogo o salto directo a producto","Mezcla desordenada; interrumpe respuestas","Sigue el orden pero avanza sin profundizar","Secuencia clara y repregunta sobre lo que el médico dice","Secuencia natural, parafrasea para confirmar y solo entonces presenta"]}]},{"cod":"D","nom":"Argumentación y material promocional","peso":20,"items":[{"id":"D1","q":"Manejo de la ayuda visual","crit":true,"a":["La entrega al médico o no la usa","Pasa páginas sin señalar; el material habla solo","La controla pero recorre todas las páginas","Controla el material y usa solo las páginas que aplican","Controla, señala el dato exacto, hace silencio para que el médico lea y retoma"]},{"id":"D2","q":"Liga característica → ventaja → beneficio a la necesidad detectada","crit":true,"a":["Recita atributos del producto","Menciona beneficios genéricos","Beneficios correctos, desconectados del sondeo","Beneficio ligado explícitamente a lo dicho por el médico","Ligado y traducido al paciente concreto que el médico mencionó"]},{"id":"D3","q":"Dominio científico y respaldo con evidencia","crit":false,"a":["Errores conceptuales","Sabe el mensaje, no lo sustenta","Sustenta con evidencia general","Cita evidencia específica y la explica bien","Maneja el mecanismo, la evidencia y responde preguntas técnicas sin material"]},{"id":"D4","q":"Diferenciación competitiva y cumplimiento del Código OMS","crit":true,"a":["Denigra al competidor o vulnera el Código","Comparación imprecisa o insinuante","Comparación correcta y respetuosa","Comparación sobre composición verificable, con encuadre pro-lactancia explícito","Diferencia con datos, encuadra la fórmula como recurso cuando la lactancia no es posible, y el médico lo reconoce"]}]},{"cod":"E","nom":"Manejo de objeciones","peso":10,"items":[{"id":"E1","q":"Escucha completa y clarifica la objeción real","crit":false,"a":["Interrumpe o se pone a la defensiva","Responde de inmediato a la objeción superficial","Escucha completa y responde","Clarifica antes de responder","Clarifica, aísla la objeción real y la separa del pretexto"]},{"id":"E2","q":"Responde con evidencia y reconfirma","crit":false,"a":["No la resuelve o la evade","Responde con opinión","Responde con evidencia; no verifica","Responde con evidencia y verifica aceptación","Responde, verifica y usa la objeción resuelta como plataforma de cierre"]}]},{"cod":"F","nom":"Cierre y compromiso","peso":20,"items":[{"id":"F1","q":"Solicita compromiso explícitamente","crit":true,"a":["No pide nada; agradece y se va","Insinúa sin pedir","Pide de forma genérica","Pide un compromiso concreto","Pide un compromiso concreto y guarda silencio esperando la respuesta"]},{"id":"F2","q":"El compromiso es medible","crit":true,"a":["Sin compromiso","\"Lo voy a tener en cuenta\"","Compromiso general de prescribir","Compromiso con producto y perfil de paciente","Producto, perfil, número de pacientes y plazo"]},{"id":"F3","q":"Acuerda el siguiente paso","crit":false,"a":["No hay siguiente paso","Vago: \"paso pronto\"","Acuerda volver","Acuerda fecha o entregable concreto","Acuerda fecha, entregable y qué se revisará entonces"]},{"id":"F4","q":"Sale con el acuerdo verbalizado y anotado","crit":false,"a":["No lo repite ni anota","Lo anota después, de memoria","Lo repite o lo anota","Lo repite frente al médico y lo anota","Lo repite, el médico confirma, queda anotado en el momento"]}]},{"cod":"G","nom":"Disciplina post-visita","peso":5,"items":[{"id":"G1","q":"Registro el mismo día","crit":false,"a":["No registra","Registra días después","Registra el mismo día, incompleto","Registra completo el mismo día","Registra completo y ajusta el plan de la próxima visita en el momento"]},{"id":"G2","q":"Autocrítica de la visita","crit":false,"a":["No reflexiona / se justifica","Reconoce solo si se le señala","Identifica algo mejorable","Identifica el punto correcto sin ayuda","Identifica el punto correcto y propone cómo corregirlo la próxima vez"]}]}];
+const ITEMS = DIMS.flatMap(d=>d.items.map(it=>({...it, dim:d.cod, dimNom:d.nom})));
+const EVALUABLES = ['A2','A3','B1','B2','C1','C2','C3','C4','C5','D2','D3','D4','E1','E2','F1','F2','F3','F4'];
+const MAX_SEG = 30*60;
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const hoy = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const mmss = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const fechaCorta = f => { try{ return new Date(f+'T12:00:00').toLocaleDateString('es-HN',{day:'numeric',month:'short',year:'numeric'}); }catch{ return f; } };
+
+let CODIGO = null, ESTADO = {};
+try { CODIGO = sessionStorage.getItem('coach_audio_cod'); } catch {}
+
+async function api(accion, extra={}, ms=60000){
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms);
+  try{
+    const r = await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,
+      body:JSON.stringify({accion, codigo:CODIGO, ...extra})});
+    const d = await r.json().catch(()=>({error:'Respuesta ilegible del servidor'}));
+    if(!r.ok) throw new Error(d.error || 'Error de conexión');
+    return d;
+  } catch(e){ throw new Error(e.name==='AbortError' ? 'El servidor tardó demasiado en responder' : e.message); }
+  finally{ clearTimeout(to); }
+}
+
+/* ---------------- formularios ---------------- */
+const ESPECIALIDADES = ['Pediatría','Neonatología','Gastroenterología pediátrica','Ginecología y obstetricia','Medicina general','Otra'];
+const PRODUCTOS = ['Nutribén Natal PRO-α','Nutribén Continuación','Nutribén Crecimiento','Nutribén Sin Lactosa','Nutribén AR','Nutribén Confort','Nutribén Soja'];
+function formHTML(p, conContexto){
+  return `
+  <div><label class="f">Visitador</label><select id="${p}_vis"><option value="">Seleccionar…</option>${EQUIPO.map(n=>`<option>${n}</option>`).join('')}</select></div>
+  <div><label class="f">Evaluador</label><input type="text" id="${p}_eval" placeholder="Quien acompaña (opcional)"></div>
+  <div><label class="f">Fecha</label><input type="date" id="${p}_fecha" value="${hoy()}"></div>
+  <div><label class="f">País</label><select id="${p}_pais"><option>Honduras</option><option>El Salvador</option><option>Nicaragua</option><option>Costa Rica</option></select></div>
+  <div><label class="f">Médico</label><input type="text" id="${p}_med" placeholder="${conContexto?'Nombre como aparece en el panel':'Opcional'}"></div>
+  <div><label class="f">Especialidad</label><select id="${p}_esp">${ESPECIALIDADES.map(e=>`<option>${e}</option>`).join('')}</select></div>
+  <div><label class="f">Producto objetivo</label><input type="text" id="${p}_prod" list="lst-prod" placeholder="Qué quiere que prescriba"></div>
+  ${conContexto?`<div><label class="f">Tipo</label><select id="${p}_ctx"><option value="role-play">Role-play de entrenamiento</option><option value="visita-piloto">Visita real (piloto)</option></select></div>`:''}
+  <datalist id="lst-prod">${PRODUCTOS.map(x=>`<option value="${x}">`).join('')}</datalist>`;
+}
+$('#form-visita').innerHTML = formHTML('g', true);
+$('#form-texto').innerHTML = formHTML('t', false);
+$('#f-vis').innerHTML += EQUIPO.map(n=>`<option>${n}</option>`).join('');
+
+function leerMeta(p){
+  const m = { visitador:$(`#${p}_vis`).value, evaluador:$(`#${p}_eval`).value.trim(), fecha:$(`#${p}_fecha`).value,
+    pais:$(`#${p}_pais`).value, medico:$(`#${p}_med`).value.trim(), especialidad:$(`#${p}_esp`).value,
+    producto_objetivo:$(`#${p}_prod`).value.trim(), contexto: $(`#${p}_ctx`)?.value || 'prueba-texto' };
+  if(!m.visitador) throw new Error('Seleccione el visitador');
+  if(!m.fecha) throw new Error('Indique la fecha');
+  return m;
+}
+
+/* ---------------- navegación ---------------- */
+function ver(v){
+  $$('.vista').forEach(x=>x.classList.toggle('on', x.id==='v-'+v));
+  $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  window.scrollTo(0,0);
+}
+$$('#tabs button').forEach(b=>b.onclick=()=>{ if(REC.estado==='grabando'){ alertaSuave('Detenga la grabación antes de cambiar de pestaña.'); return; } ver(b.dataset.v); if(b.dataset.v==='fichas') listar(); });
+function alertaSuave(t){ $('#rec-msg').innerHTML = `<span style="color:var(--rojo)">${esc(t)}</span>`; }
+
+/* ---------------- acceso ---------------- */
+async function entrar(cod){
+  CODIGO = cod;
+  const d = await api('entrar');
+  ESTADO = d;
+  try { sessionStorage.setItem('coach_audio_cod', cod); } catch {}
+  $('#tabs').classList.remove('oculto');
+  $('#aviso-stt').innerHTML = d.transcripcion_lista ? '' :
+    `<div class="aviso">La grabación de audio aún no está activa: falta configurar el servicio de transcripción en Supabase. Mientras tanto use <b>Prueba con texto</b>.</div>`;
+  ver('grabar');
+}
+$('#b-entrar').onclick = async ()=>{
+  $('#acc-error').textContent='';
+  const c = $('#a_cod').value.trim(); if(!c) return;
+  $('#b-entrar').disabled = true;
+  try{ await entrar(c); } catch(e){ $('#acc-error').textContent = e.message; CODIGO=null; }
+  finally{ $('#b-entrar').disabled = false; }
+};
+$('#a_cod').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#b-entrar').click(); });
+if(CODIGO) entrar(CODIGO).catch(()=>{ CODIGO=null; try{sessionStorage.removeItem('coach_audio_cod')}catch{} });
+
+/* ---------------- grabación ---------------- */
+const REC = { estado:'listo', stream:null, rec:null, chunks:[], blob:null, mime:'', t0:0, timer:null, wake:null, ctx:null, an:null, raf:null, meta:null, oculto:false };
+
+function elegirMime(){
+  const ops = ['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'];
+  return ops.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+}
+async function pedirWake(){ try{ REC.wake = await navigator.wakeLock?.request('screen'); }catch{} }
+document.addEventListener('visibilitychange', ()=>{
+  if(REC.estado!=='grabando') return;
+  if(document.visibilityState==='hidden') REC.oculto = true;
+  else { pedirWake(); if(REC.oculto) alertaSuave('La pantalla se ocultó durante la grabación: en algunos teléfonos eso pausa el micrófono. Revise que el reloj siga avanzando.'); }
+});
+window.addEventListener('beforeunload', e=>{ if(REC.estado==='grabando' || REC.blob){ e.preventDefault(); e.returnValue=''; } });
+
+function dibujarNivel(){
+  const c = $('#nivel'), g = c.getContext('2d'), buf = new Uint8Array(REC.an.fftSize);
+  const barras = 42, w = c.width/barras;
+  const hist = new Array(barras).fill(0);
+  const paso = ()=>{
+    REC.an.getByteTimeDomainData(buf);
+    let s=0; for(const v of buf){ const x=(v-128)/128; s+=x*x; }
+    hist.push(Math.min(1, Math.sqrt(s/buf.length)*4)); hist.shift();
+    g.clearRect(0,0,c.width,c.height);
+    hist.forEach((v,i)=>{ const h=Math.max(4, v*c.height); g.fillStyle = v>0.08 ? '#00A0DF' : '#BADDF4';
+      g.fillRect(i*w+3,(c.height-h)/2,w-6,h); });
+    REC.raf = requestAnimationFrame(paso);
+  };
+  paso();
+}
+
+$('#b-rec').onclick = async ()=>{
+  if(REC.estado!=='listo') return;
+  let meta; try{ meta = leerMeta('g'); }catch(e){ alertaSuave(e.message); return; }
+  if(!ESTADO.transcripcion_lista){ alertaSuave('La grabación aún no está activa. Use Prueba con texto.'); return; }
+  REC.mime = elegirMime();
+  if(!REC.mime){ alertaSuave('Este navegador no permite grabar audio. Use Chrome o Safari actualizado.'); return; }
+  try{
+    REC.stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
+  }catch{ alertaSuave('No se pudo usar el micrófono. Revise el permiso del navegador.'); return; }
+  REC.meta = meta; REC.chunks = []; REC.blob = null; REC.oculto = false;
+  REC.rec = new MediaRecorder(REC.stream, {mimeType:REC.mime, audioBitsPerSecond:32000});
+  REC.rec.ondataavailable = e=>{ if(e.data.size) REC.chunks.push(e.data); };
+  REC.rec.start(1000);
+  try{
+    REC.ctx = new (window.AudioContext||window.webkitAudioContext)();
+    REC.an = REC.ctx.createAnalyser(); REC.an.fftSize = 1024;
+    REC.ctx.createMediaStreamSource(REC.stream).connect(REC.an); dibujarNivel();
+  }catch{}
+  await pedirWake();
+  REC.estado='grabando'; REC.t0 = Date.now();
+  $('#b-rec').classList.add('grabando'); $('#b-rec').textContent='Grabando';
+  $('#b-stop').disabled=false; $('#b-desc').disabled=false;
+  $('#rec-msg').textContent = 'Primero lea el guion de consentimiento y espere el "sí" del médico.';
+  REC.timer = setInterval(()=>{
+    const s = (Date.now()-REC.t0)/1000; $('#reloj').textContent = mmss(s);
+    if(s >= MAX_SEG) detener(true);
+  }, 250);
+};
+
+function liberar(){
+  clearInterval(REC.timer); cancelAnimationFrame(REC.raf);
+  REC.stream?.getTracks().forEach(t=>t.stop()); REC.stream=null;
+  try{ REC.ctx?.close(); }catch{} REC.ctx=null;
+  try{ REC.wake?.release(); }catch{} REC.wake=null;
+  $('#b-rec').classList.remove('grabando'); $('#b-rec').textContent='Grabar';
+  $('#b-stop').disabled=true; $('#b-desc').disabled=true;
+}
+function detener(analizar){
+  return new Promise(res=>{
+    if(!REC.rec || REC.rec.state==='inactive'){ liberar(); res(); return; }
+    REC.rec.onstop = ()=>{
+      REC.blob = analizar ? new Blob(REC.chunks, {type:REC.mime.split(';')[0]}) : null;
+      REC.chunks = []; liberar(); REC.estado='listo'; res();
+      if(analizar) enviar();
+    };
+    REC.rec.stop();
+  });
+}
+$('#b-stop').onclick = ()=>{
+  const s = (Date.now()-REC.t0)/1000;
+  if(s < 45 && !confirm('La grabación dura menos de 45 segundos. ¿Analizar de todos modos?')) return;
+  detener(true);
+};
+function descartar(){
+  REC.blob=null; REC.chunks=[]; $('#reloj').textContent='00:00';
+  $('#g-proc').classList.add('oculto'); $('#g-datos').classList.remove('oculto');
+  $('#rec-msg').textContent='Grabación descartada. No se envió nada.';
+}
+$('#b-desc').onclick = async ()=>{ await detener(false); descartar(); };
+$('#b-desc2').onclick = descartar;
+$('#b-reint').onclick = ()=>enviar();
+
+function marcarPaso(n){ $$('#pasos-proc li').forEach(li=>{ const p=+li.dataset.p; li.classList.toggle('ok', p<n); li.classList.toggle('on', p===n); }); }
+
+async function enviar(){
+  if(!REC.blob) return;
+  $('#g-datos').classList.add('oculto'); $('#g-proc').classList.remove('oculto'); $('#proc-error').classList.add('oculto');
+  marcarPaso(0);
+  const ext = REC.blob.type.includes('mp4') ? 'm4a' : REC.blob.type.includes('ogg') ? 'ogg' : 'webm';
+  const fd = new FormData();
+  fd.append('codigo', CODIGO); fd.append('meta', JSON.stringify(REC.meta)); fd.append('audio', REC.blob, 'visita.'+ext);
+  const t1 = setTimeout(()=>marcarPaso(1), 2500), t2 = setTimeout(()=>marcarPaso(2), 16000);
+  const ctl = new AbortController(), to = setTimeout(()=>ctl.abort(), 240000);
+  try{
+    const r = await fetch(FN, {method:'POST', body:fd, signal:ctl.signal});
+    const d = await r.json().catch(()=>({error:'Respuesta ilegible del servidor'}));
+    if(!r.ok) throw new Error(d.error || 'Error de conexión');
+    marcarPaso(3);
+    REC.blob = null; // la copia local también se descarta
+    await new Promise(x=>setTimeout(x,500));
+    $('#g-proc').classList.add('oculto'); $('#g-datos').classList.remove('oculto'); $('#reloj').textContent='00:00';
+    $('#rec-msg').textContent='Máximo 30 minutos por visita.';
+    if(d.descartado){ mostrarDescartada(d); } else { pintarFicha(d.ficha); }
+  }catch(e){
+    $('#proc-error').classList.remove('oculto');
+    $('#proc-error-txt').textContent = (e.name==='AbortError' ? 'El análisis tardó demasiado.' : e.message) + ' La grabación sigue en este teléfono hasta que la reintente o la descarte.';
+  }finally{ clearTimeout(t1); clearTimeout(t2); clearTimeout(to); }
+}
+
+function mostrarDescartada(d){
+  $('#ficha').innerHTML = `<div class="card"><h2>Visita sin consentimiento</h2>
+    <div class="aviso rojo" style="margin-top:10px">No se detectó que el médico aceptara la grabación, así que <b>no se realizó ningún análisis</b>. El audio y la transcripción ya se eliminaron. Queda registrado solo que la visita se descartó.</div>
+    <p class="sub">Motivo: ${esc(d.motivo)}</p>
+    <div class="fila-btn"><button class="btn" onclick="ver('grabar')">Volver</button></div></div>`;
+  ver('ficha');
+}
+
+/* ---------------- prueba con texto ---------------- */
+const EJEMPLO = `V: Doctor, buenas tardes. ¿Me permite grabar esta visita? Es solo para mi evaluación interna, no guardamos la conversación.
+M: Sí, no hay problema, adelante.
+V: Gracias. Le vengo a presentar Nutribén Natal PRO alfa, que es nuestra fórmula de inicio.
+M: Ajá, ¿y qué tiene de diferente?
+V: ¿Cuántos pacientes recién nacidos ve por semana, doctor?
+M: Unos quince, veinte.
+V: ¿Y qué fórmulas usa normalmente?
+M: Casi siempre NAN, a veces Enfamil.
+V: ¿Y las mamás le regresan con problemas?
+M: Pues sí, cólicos sobre todo, y estreñimiento. Las mamás llegan angustiadas.
+V: Mire, Natal PRO alfa tiene alfa-lactoalbúmina como proteína dominante, igual que la leche materna, y eso ayuda con los cólicos y el estreñimiento porque mejora la digestión. También tiene menos jabones cálcicos.
+M: Eso dicen todas las marcas.
+V: No, doctor, pero la nuestra sí es mejor que NAN, NAN tiene mucha caseína y por eso estriñe.
+M: Bueno. El problema es que es más cara, las mamás aquí no tienen para eso.
+V: Sí, pero vale la pena porque es de calidad, viene de España.
+M: Mmm, ya veremos.
+V: Bueno doctor, ojalá la pueda tener en cuenta. Le dejo unas muestras.
+M: Está bien, gracias.
+V: Paso pronto a verlo. Que tenga buena tarde.`;
+$('#b-ejemplo').onclick = ()=>{ $('#t-texto').value = EJEMPLO; if(!$('#t_vis').value) $('#t_vis').value = EQUIPO[1]; $('#t_prod').value='Nutribén Natal PRO-α'; };
+$('#b-texto').onclick = async ()=>{
+  $('#t-msg').textContent='';
+  let meta; try{ meta = leerMeta('t'); }catch(e){ $('#t-msg').innerHTML=`<span style="color:var(--rojo)">${esc(e.message)}</span>`; return; }
+  const texto = $('#t-texto').value.trim(); if(!texto){ $('#t-msg').textContent='Pegue la conversación.'; return; }
+  $('#b-texto').disabled = true; $('#t-msg').textContent = 'Analizando… (hasta 2 minutos)';
+  try{
+    const d = await api('analizar_texto', {meta, texto}, 200000);
+    $('#t-msg').textContent='';
+    if(d.descartado) mostrarDescartada(d); else pintarFicha(d.ficha);
+  }catch(e){ $('#t-msg').innerHTML=`<span style="color:var(--rojo)">${esc(e.message)}</span>`; }
+  finally{ $('#b-texto').disabled = false; }
+};
+
+/* ---------------- ficha ---------------- */
+function kpi(v, l, meta, estado){ const t = /[a-záéíóú]{3,}/i.test(String(v)) && !/^\d/.test(String(v)); return `<div class="kpi ${estado||''}"><div class="v${t?' t':''}">${v}</div><div class="l">${l}</div>${meta?`<div class="m">${meta}</div>`:''}</div>`; }
+
+function pintarFicha(f){
+  const m = f.metricas || {}, p = f.preguntas || m.preguntas || {};
+  const est = m.tiempos_estimados ? ' <span class="pill">estimado</span>' : '';
+  const habla = m.habla_visitador_pct;
+  const ap = m.apertura_seg;
+  const sil = m.silencio_post_compromiso_seg;
+  const ctxNom = {'role-play':'Role-play','visita-piloto':'Visita real (piloto)','prueba-texto':'Prueba con texto'}[f.contexto] || f.contexto;
+  const benef = {medico:'El médico',visitador:'El visitador',nadie:'Nadie'}[m.beneficio_enunciado_por] || '—';
+  const reac = {pregunta:'Preguntó',respuesta:'Respondió de inmediato',sin_objecion:'Sin objeciones'}[m.primera_reaccion_objecion] || '—';
+  const comp = m.compromiso || {};
+  const pr = f.prioridad || null;
+
+  const porDim = DIMS.filter(d=>f.por_dimension?.[d.cod]!=null).map(d=>{
+    const v = f.por_dimension[d.cod];
+    return `<div class="barra"><div>${d.cod} · ${esc(d.nom)}</div><div class="pista"><div class="fill" style="width:${(v/5*100).toFixed(0)}%;background:${v<2.5?'var(--rojo)':v<3.5?'var(--nb-naranja)':'var(--nb-cielo)'}"></div></div><div class="val">${v.toFixed(1)}</div></div>`;
+  }).join('');
+
+  const conductas = DIMS.map(d=>{
+    const its = d.items.filter(it=>EVALUABLES.includes(it.id));
+    if(!its.length) return '';
+    return `<div class="dimtit">${d.cod} · ${esc(d.nom)}</div>` + its.map(it=>{
+      const n = f.item_nivel?.[it.id];
+      const tiene = typeof n==='number';
+      return `<div class="cond ${it.crit?'crit':''}">
+        <div class="n ${tiene?'n'+n:'nx'}">${tiene?n:'N/O'}</div>
+        <div><div class="q">${it.id} · ${esc(it.q)} ${it.crit?'<span class="pill crit">Crítico</span>':''} ${['A2','A3','F4'].includes(it.id)?'<span class="pill">Parcial</span>':''}</div>
+          <div class="anc">${tiene?esc(it.a[n-1]):'No observable en esta visita — no cuenta en el puntaje'}</div>
+          ${f.evidencia?.[it.id]?`<div class="ev">${esc(f.evidencia[it.id])}</div>`:''}</div></div>`;
+    }).join('');
+  }).join('');
+
+  const alertas = (f.alertas_oms||[]).length ? `<div class="aviso rojo"><div class="etq" style="color:var(--rojo)">Alerta de cumplimiento · Código OMS</div>
+    ${(f.alertas_oms).map(a=>`<div style="margin-top:6px"><b>${esc(a.descripcion)}</b>${a.cita_visitador?`<div class="sub" style="font-style:italic">${esc(a.cita_visitador)}</div>`:''}</div>`).join('')}</div>` : '';
+
+  $('#ficha').innerHTML = `
+  <div class="fila-btn no-print" style="margin-bottom:12px">
+    <button class="btn gh" onclick="ver('grabar')">← Nueva grabación</button>
+    <button class="btn gh" onclick="ver('fichas');listar()">Ver fichas</button>
+    <button class="btn gh" onclick="window.print()">Imprimir</button>
+  </div>
+  <div class="marcador">
+    <div><div class="etq" style="opacity:.75">Puntaje audible</div><div class="big">${f.puntaje_audible!=null?(+f.puntaje_audible).toFixed(1):'—'} <span class="of">/ 5</span></div></div>
+    <div class="meta"><b>${esc(f.visitador)}</b>${esc(f.medico||'Médico no indicado')} · ${esc(f.especialidad||'')}<br>${fechaCorta(f.fecha)} · ${esc(ctxNom)}${f.duracion_seg?` · ${mmss(f.duracion_seg)} min`:''}</div>
+    <div class="der"><span class="pill ok">✓ Consentimiento verbal</span><span class="pill" style="background:rgba(255,255,255,.18);color:#fff">Audio y transcripción eliminados</span></div>
+  </div>
+  <div class="aviso azul">Este puntaje usa solo las conductas que se pueden escuchar. <b>No es comparable</b> con la evaluación de jornada: no incluye planificación con el Close Up, manejo de la ayuda visual ni disciplina post-visita.</div>
+  ${alertas}
+  ${pr?`<div class="reto"><div class="etq">La única conducta a cambiar</div>
+    <h4>${esc(pr.id)} · ${esc(pr.q||'')}</h4><p>${esc(pr.por_que)}</p>
+    <p><b>Próxima visita:</b> ${esc(pr.como)}</p>
+    ${pr.reto?`<div class="med"><b>Reto: ${esc(pr.reto.t)}.</b> ${esc(pr.reto.d)}<br><span class="sub">${esc(pr.reto.m)}</span></div>`:''}</div>`:''}
+  ${f.fortaleza?`<div class="reto fuerte"><div class="etq">El patrón más sólido</div><p style="margin-top:4px">${esc(f.fortaleza)}</p></div>`:''}
+
+  <div class="kpis">
+    ${kpi(habla!=null?habla+'%':'—','Habla el visitador'+est,'Meta: menos de 50%', habla==null?'':habla<50?'ok':habla<=65?'med':'no')}
+    ${kpi(ap!=null?ap+' s':'—','Duración de la apertura'+est,'Meta: 45 s o menos', ap==null?'':ap<=45?'ok':ap<=75?'med':'no')}
+    ${kpi(`${p.S??'—'}·${p.P??'—'}·${p.I??'—'}·${p.N??'—'}`,'Preguntas S·P·I·N','Meta: S ≤ 2, al menos 1 N', (p.S??9)<=2 && (p.N??0)>=1 ? 'ok' : 'no')}
+    ${kpi(m.implicaciones_antes_de_producto??'—','Implicaciones antes de producto','Meta: 3', (m.implicaciones_antes_de_producto??0)>=3?'ok':(m.implicaciones_antes_de_producto??0)>=1?'med':'no')}
+    ${kpi(benef,'Enunció el beneficio','Meta: el médico', m.beneficio_enunciado_por==='medico'?'ok':'no')}
+    ${kpi(reac,'Ante la objeción','Meta: preguntar primero', m.primera_reaccion_objecion==='pregunta'?'ok':m.primera_reaccion_objecion==='sin_objecion'?'':'no')}
+    ${kpi(sil!=null?sil+' s':'No pidió','Silencio tras pedir compromiso'+est, m.rompe_silencio?`Rompió el silencio: ${m.rompe_silencio==='medico'?'el médico ✓':'el visitador'}`:'Meta: pedir y callar', sil==null?'no':m.rompe_silencio==='medico'?'ok':'no')}
+    ${kpi(comp.pedido?'Pedido':'No pedido','Compromiso', [comp.producto,comp.perfil_paciente,comp.cantidad_o_plazo].filter(Boolean).map(esc).join(' · ')||'Sin producto, perfil ni cantidad', comp.pedido && comp.producto && comp.perfil_paciente && comp.cantidad_o_plazo ? 'ok' : comp.pedido ? 'med':'no')}
+  </div>
+
+  ${f.resumen?`<div class="card"><h2>Lectura del coach</h2><p style="margin:6px 0 0">${esc(f.resumen)}</p></div>`:''}
+  ${porDim?`<div class="card"><h2>Por dimensión</h2><p class="sub" style="margin-bottom:12px">Promedio de las conductas audibles de cada dimensión.</p>${porDim}</div>`:''}
+  ${(m.objeciones||[]).length?`<div class="card"><h2>Objeciones</h2>${m.objeciones.map(o=>`<div style="margin-top:8px"><b>${esc(o.tema)}</b><div class="sub">${esc(o.manejo)}</div></div>`).join('')}</div>`:''}
+  <div class="card"><h2>Conductas evaluadas</h2><p class="sub">Las citas textuales son solo del visitador; lo que dijo el médico aparece parafraseado.</p>${conductas}</div>
+  <p class="sub" style="text-align:center">Rúbrica ${esc(f.version_rubrica||'')} · ${esc(f.modelo||'')} · ${esc(f.proveedor_stt||'')}</p>`;
+  ver('ficha');
+}
+
+/* ---------------- listado ---------------- */
+async function listar(){
+  $('#lista').innerHTML = '<p class="sub">Cargando…</p>';
+  try{
+    const d = await api('listar', {visitador: $('#f-vis').value || undefined});
+    const fs = d.fichas || [];
+    if(!fs.length){ $('#lista').innerHTML = '<p class="sub">Todavía no hay fichas.</p>'; return; }
+    $('#lista').innerHTML = `<table><thead><tr><th>Fecha</th><th>Visitador</th><th>Médico</th><th>Tipo</th><th style="text-align:center">Puntaje</th><th>Conducta a cambiar</th></tr></thead><tbody>
+      ${fs.map(f=>`<tr class="clic" data-id="${f.id}"><td>${fechaCorta(f.fecha)}</td><td>${esc(f.visitador)}</td><td>${esc(f.medico||'—')}</td>
+        <td>${esc({'role-play':'Role-play','visita-piloto':'Visita real','prueba-texto':'Texto'}[f.contexto]||f.contexto)}</td>
+        <td class="n">${f.descartado?'<span class="pill no">Sin consentimiento</span>':(f.puntaje_audible!=null?(+f.puntaje_audible).toFixed(1):'—')}</td>
+        <td>${f.prioridad?esc(f.prioridad.id+' · '+(f.prioridad.q||'')):'—'}</td></tr>`).join('')}</tbody></table>`;
+    $$('#lista tr.clic').forEach(tr=>tr.onclick=async()=>{
+      const f = (await api('detalle',{id:tr.dataset.id})).ficha;
+      if(f.descartado) mostrarDescartada({motivo:f.consentimiento_nota}); else pintarFicha(f);
+    });
+  }catch(e){ $('#lista').innerHTML = `<p class="sub" style="color:var(--rojo)">${esc(e.message)}</p>`; }
+}
+$('#b-listar').onclick = listar;
+$('#f-vis').onchange = listar;
+</script>
+</body>
+</html>
