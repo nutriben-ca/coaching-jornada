@@ -273,6 +273,7 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
       <select id="h_mr" style="width:auto;min-width:220px"><option value="">Todo el equipo</option></select>
       <button class="btn sec" id="b-recargar">Actualizar</button>
       <button class="btn gh" id="b-csv">Exportar CSV</button>
+      <button class="btn gh" id="b-bitacora">Intentos de guardado</button>
       <span class="sub" id="hist-msg"></span>
     </div>
   </div>
@@ -440,7 +441,17 @@ async function api(accion, extra={}){
    ESTADO — una sola evaluación por jornada.
    Los médicos son el contexto observado (mínimo 4).
    ========================================================= */
-let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}, modalidad:'completa'};
+let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}, modalidad:'completa', cliente_id:null};
+// Cada jornada lleva su propio identificador desde que se abre: el servidor ya no sobrescribe por visitador+fecha.
+const nuevoId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);});
+// true mientras haya una jornada abierta que el servidor todavía no confirmó.
+let SIN_GUARDAR = false;
+window.addEventListener('beforeunload', e=>{
+  if(!SIN_GUARDAR) return;
+  try{ guardarBorrador(); }catch(_){}
+  e.preventDefault(); e.returnValue='';
+});
 let VER_ANCLAS = {}, VER_NOTA = {};
 let ANCLAS_SIEMPRE = false;
 try{ ANCLAS_SIEMPRE = localStorage.getItem('cj-anclas')==='1'; }catch(e){}
@@ -496,6 +507,8 @@ $('#b-empezar').onclick = ()=>{
   $('#cab-error').textContent=''; J.cab = cab;
   J.modalidad = $('#c_modo').value; usarModalidad(J.modalidad);
   if(!J.medicos.length) J.medicos = Array.from({length:MIN_VISITAS}, nuevoMedico);
+  if(!J.cliente_id) J.cliente_id = nuevoId();
+  SIN_GUARDAR = true;
   J.dimActiva = 0;
   abrirInstrumento();
 };
@@ -557,6 +570,8 @@ function avisarBorrador(){
     <button class="btn gh" id="b-descartar">Descartar</button></div></div>`;
   $('#b-retomar').onclick = ()=>{
     J = {...J, ...b, modalidad:b.modalidad||'completa'};
+    if(!J.cliente_id) J.cliente_id = nuevoId();
+    SIN_GUARDAR = true;
     usarModalidad(J.modalidad);
     $('#q_fuerte').value=b.cual?.fuerte||''; $('#q_mejora').value=b.cual?.mejora||''; $('#q_compromiso').value=b.cual?.compromiso||'';
     abrirInstrumento();
@@ -813,14 +828,19 @@ function retosDe(a){
   return out;
 }
 
-$('#b-calcular').onclick = async ()=>{
+$('#b-calcular').onclick = ()=>guardarJornada();
+
+async function guardarJornada(){
   J.cual = {fuerte:$('#q_fuerte').value.trim(), mejora:$('#q_mejora').value.trim(), compromiso:$('#q_compromiso').value.trim()};
   if(medicosValidos() < MIN_VISITAS){ alert(`Se requieren ${MIN_VISITAS} visitas observadas. Registradas: ${medicosValidos()}.`); return; }
+  if(!J.cliente_id) J.cliente_id = nuevoId();
   const a = analizar();
   const b=$('#b-calcular'); b.disabled=true; b.textContent='Guardando…';
+  const rb=$('#b-reintentar'); if(rb){ rb.disabled=true; rb.textContent='Guardando…'; }
   let estado;
   try{
-    await api('guardar',{jornada:{
+    const r = await api('guardar',{jornada:{
+      cliente_id:J.cliente_id,
       visitador:J.cab.mr, gerente:J.cab.evaluador, fecha:J.cab.fecha, pais:J.cab.pais,
       ciudad:J.cab.ciudad, ciclo:J.cab.ciclo, tipo:J.cab.tipo,
       medicos:J.medicos.filter(m=>m.nombre.trim()),
@@ -828,11 +848,25 @@ $('#b-calcular').onclick = async ()=>{
       por_dimension:a.porDim, puntaje_global:a.global, consistencia:a.consistencia,
       deficit_sistematico:a.sistematico, desempeno_erratico:a.erratico,
       cualitativo:{...J.cual, modalidad:J.modalidad}}});
-    estado={ok:true}; borrarBorrador(); cargarHistorial();
+    if(!r || !r.ok || !r.folio) throw new Error('El servidor no confirmó el guardado');
+    estado={ok:true, folio:r.folio, actualizada:!!r.actualizada};
+    SIN_GUARDAR = false; borrarBorrador(); cargarHistorial();
   }catch(e){ estado={ok:false,msg:e.message}; }
-  b.disabled=false; b.textContent='Cerrar jornada y ver resultado';
+  b.disabled=false; b.textContent='Cerrar jornada y ver tendencias';
   pintarResultado(a, estado);
-};
+}
+
+function bannerGuardado(estado){
+  if(estado && estado.historico)
+    return estado.folio ? `<div class="aviso verde"><b>Registro histórico · Folio N.º ${estado.folio}</b></div>` : '';
+  if(estado && estado.ok)
+    return `<div class="aviso verde" style="font-size:15px"><b>✓ Guardada en el registro histórico · Folio N.º ${estado.folio}</b>
+      <div style="font-size:13px;margin-top:4px">Anota el folio: es el comprobante de que la jornada quedó registrada.${estado.actualizada?' Se actualizó la misma jornada; no se creó un duplicado.':''}</div></div>`;
+  return `<div class="aviso rojo no-print" style="font-size:15px;border-width:2px"><b>⚠ ESTA JORNADA NO SE GUARDÓ</b>
+    <div style="font-size:13px;margin-top:4px">Motivo: ${esc(estado?estado.msg:'sin conexión')}. Sigue en este equipo como borrador: no cierres la página.
+    Reintenta; si no se puede, descarga el PDF.</div>
+    <div class="fila-btn" style="margin-top:10px"><button class="btn" id="b-reintentar">Reintentar guardado</button></div></div>`;
+}
 
 const SPIN = [
  {id:'C1', l:'S', nom:'Situación',          nota:'Menos es mejor: llegar informado.'},
@@ -883,6 +917,8 @@ function pintarResultado(a, estado){
   <div class="solo-print" style="margin-bottom:14px">
     <div style="font-size:19px;font-weight:700;color:#0033A1">Evaluación de jornada de acompañamiento</div>
     <div style="font-size:12px;color:#4A5B78">Nutribén Centroamérica · Casa Ferne, S.A.</div></div>
+
+  ${bannerGuardado(estado)}
 
   <div class="card">
     <table><tbody>
@@ -968,15 +1004,19 @@ function pintarResultado(a, estado){
     <button class="btn sec" id="b-nueva">Nueva jornada</button>
     <span class="sub" id="est-guardado"></span></div>`;
 
-  $('#est-guardado').innerHTML = estado && estado.historico ? 'Jornada del registro histórico.'
-    : estado && estado.ok ? 'Guardada en el registro histórico.'
+  const rb = $('#b-reintentar'); if(rb) rb.onclick = ()=>guardarJornada();
+  $('#est-guardado').innerHTML = estado && estado.historico ? `Jornada del registro histórico${estado.folio?' · Folio N.º '+estado.folio:''}.`
+    : estado && estado.ok ? `Guardada en el registro histórico · Folio N.º ${estado.folio}.`
     : `<span style="color:var(--rojo)"><b>No se guardó:</b> ${estado?estado.msg:'sin conexión'}. Descarga el PDF antes de cerrar.</span>`;
   $('#b-pdf').onclick = ()=>{
     const prev=document.title;
     document.title = `Jornada_${c.mr.replace(/\s+/g,'')}_${c.fecha}`;
     window.print(); setTimeout(()=>document.title=prev,800);
   };
-  $('#b-nueva').onclick = ()=>location.reload();
+  $('#b-nueva').onclick = ()=>{
+    if(SIN_GUARDAR && !confirm('Esta jornada NO se guardó en el registro histórico. Queda como borrador en este equipo y podrás retomarla al entrar. ¿Salir de todos modos?')) return;
+    SIN_GUARDAR = false; location.reload();
+  };
   window.scrollTo(0,0);
 }
 
@@ -998,6 +1038,28 @@ async function cargarHistorial(){
   }catch(e){ $('#hist-msg').innerHTML=`<span style="color:var(--rojo)">${e.message}</span>`; }
 }
 $('#b-recargar').onclick = cargarHistorial;
+
+// Cada vez que alguien presiona guardar queda registrado aquí, se haya guardado o no.
+$('#b-bitacora').onclick = async ()=>{
+  if(!CODIGO) return;
+  $('#hist-msg').textContent='Cargando…';
+  try{
+    const d = await api('bitacora');
+    const l = d.intentos||[];
+    const fh = x=>{ try{ return new Date(x).toLocaleString('es-HN',{dateStyle:'medium',timeStyle:'short'}); }catch(e){ return x; } };
+    $('#hist-msg').textContent='';
+    $('#hist-cont').innerHTML = `<div class="card"><h2>Intentos de guardado</h2>
+      <p class="sub">Cada vez que se presionó "Cerrar jornada", con su resultado. Registro desde el 5-nov-2026; los intentos anteriores no quedaron registrados.</p>
+      ${l.length?`<table style="margin-top:10px"><thead><tr><th>Cuándo</th><th>Resultado</th><th>Visitador</th><th>Gerente</th><th>Fecha jornada</th><th>Visitas</th><th>Detalle</th></tr></thead><tbody>
+      ${l.map(x=>`<tr><td>${fh(x.creado_at)}</td>
+        <td>${x.ok?`<span style="color:var(--verde);font-weight:650">Guardada · Folio ${x.folio}</span>`:'<span style="color:var(--rojo);font-weight:650">No se guardó</span>'}</td>
+        <td>${esc(x.visitador)||'—'}</td><td>${esc(x.gerente)||'—'}</td><td>${esc(x.fecha)||'—'}</td><td class="n">${x.n_visitas??'—'}</td>
+        <td style="font-size:12.5px">${x.ok?(x.error==='actualizacion'?'Actualizó la misma jornada':'Jornada nueva'):esc(x.error)}</td></tr>`).join('')}
+      </tbody></table>`:'<p class="sub" style="margin-top:10px">Todavía no hay intentos registrados.</p>'}
+      <div class="fila-btn" style="margin-top:12px"><button class="btn sec" id="b-volver-hist">Volver al historial</button></div></div>`;
+    $('#b-volver-hist').onclick = pintarHistorial;
+  }catch(e){ $('#hist-msg').innerHTML=`<span style="color:var(--rojo)">${esc(e.message)}</span>`; }
+};
 $('#h_mr').onchange = pintarHistorial;
 
 function pintarHistorial(){
@@ -1073,9 +1135,9 @@ function panelEvolucion(datos, mr){
 
 function tablaHist(datos){
   return `<div class="card"><h2>Jornadas registradas</h2>
-    <table style="margin-top:10px"><thead><tr><th>Fecha</th><th>Visitador</th><th>Visitas</th><th>Gerente</th><th>Global</th><th>Constancia</th><th>Nivel</th><th></th></tr></thead><tbody>
+    <table style="margin-top:10px"><thead><tr><th>Folio</th><th>Fecha</th><th>Visitador</th><th>Visitas</th><th>Gerente</th><th>Global</th><th>Constancia</th><th>Nivel</th><th></th></tr></thead><tbody>
     ${datos.map(h=>{const t=tierDe(h.global);
-      return `<tr><td>${h.fecha}</td><td>${esc(h.visitador)}<br><small style="color:var(--tinta-2)">${esc(h.ciudad)||''}${h.ciclo?' · '+esc(h.ciclo):''}</small></td>
+      return `<tr><td class="n">${h.folio??'—'}</td><td>${h.fecha}</td><td>${esc(h.visitador)}<br><small style="color:var(--tinta-2)">${esc(h.ciudad)||''}${h.ciclo?' · '+esc(h.ciclo):''}</small></td>
       <td class="n">${h.n_visitas}</td><td>${esc(h.gerente)}</td>
       <td class="n">${h.global.toFixed(2)}</td><td class="n">${h.cons!==null?h.cons.toFixed(2):'—'}</td>
       <td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span><br><span class="pill ${h.modalidad==='express'?'mx':'mc'}" style="font-size:10.5px;margin-top:4px">${MODOS[h.modalidad]?.nom||'Completa'}</span></td>
@@ -1084,9 +1146,15 @@ function tablaHist(datos){
 }
 
 async function verJornada(id){
+  if(SIN_GUARDAR){
+    if(!confirm('Tienes una jornada en curso sin guardar. Quedará como borrador en este equipo y podrás retomarla con "Nueva jornada". ¿Abrir esta jornada del historial?')) return;
+    guardarBorrador();
+  }
   try{
     const d = await api('detalle',{jornada_id:id});
     const j = d.jornada;
+    SIN_GUARDAR = false;
+    J.cliente_id = j.cliente_id || null;
     J.cab = {mr:j.visitador, evaluador:j.gerente, fecha:j.fecha, pais:j.pais,
       ciudad:j.ciudad, ciclo:j.ciclo, tipo:j.tipo};
     J.medicos = (j.medicos||[]).map(m=>({nombre:m.nombre||'', especialidad:m.especialidad||'', tier_emc:m.tier_emc||''}));
@@ -1100,7 +1168,7 @@ async function verJornada(id){
     $('#v-nueva').classList.add('on');
     $('#paso-acceso').style.display='none'; $('#paso-cab').style.display='none';
     $('#paso-inst').style.display='none'; $('#paso-cierre').style.display='none';
-    pintarResultado(analizar(), {ok:true, historico:true});
+    pintarResultado(analizar(), {ok:true, historico:true, folio:j.folio});
   }catch(e){ alert(e.message); }
 }
 
@@ -1108,10 +1176,10 @@ $('#b-csv').onclick = ()=>{
   const f=$('#h_mr').value;
   const datos = f ? HIST.filter(h=>h.visitador===f) : HIST;
   if(!datos.length) return;
-  const cols=['fecha','visitador','gerente','pais','ciudad','ciclo','tipo','modalidad','n_visitas','global','consistencia',
+  const cols=['folio','fecha','visitador','gerente','pais','ciudad','ciclo','tipo','modalidad','n_visitas','global','consistencia',
     ...DIMS_COMPLETA.map(d=>'dim_'+d.cod),'deficit_sistematico','inconsistente','patron_solido','a_cambiar','compromisos'];
   const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
-  const filas=datos.map(h=>[h.fecha,h.visitador,h.gerente,h.pais,h.ciudad,h.ciclo,h.tipo,h.modalidad,h.n_visitas,h.global,h.cons,
+  const filas=datos.map(h=>[h.folio,h.fecha,h.visitador,h.gerente,h.pais,h.ciudad,h.ciclo,h.tipo,h.modalidad,h.n_visitas,h.global,h.cons,
     ...DIMS_COMPLETA.map(d=>h.por_dim?.[d.cod]??''),
     (h.sis||[]).map(x=>x.id).join(' '), (h.err||[]).map(x=>x.id).join(' '),
     h.cual?.fuerte,h.cual?.mejora,h.cual?.compromiso].map(q).join(','));
