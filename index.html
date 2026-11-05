@@ -151,6 +151,32 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
   .solo-print{display:block !important}
 }
 .solo-print{display:none}
+
+/* ---------- modalidad Express ---------- */
+.pill.mx{background:#E6F6F3;color:#1E6B5A} .pill.mc{background:var(--nb-cielo-35);color:var(--nb-marino)}
+.hint{font-size:12.5px;color:var(--tinta-2);margin-top:6px}
+.hint b{color:var(--nb-marino)}
+.rejilla{overflow-x:auto;margin-top:12px}
+.rejilla table{min-width:520px}
+.rejilla th.v{text-align:center;font-size:11px;min-width:62px}
+.rejilla th.v small{display:block;font-weight:400;text-transform:none;letter-spacing:0;max-width:90px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 auto}
+.rejilla td{padding:5px 7px;vertical-align:middle}
+.rejilla td.c{text-align:center}
+.rejilla .lab{font-size:13px} .rejilla .lab b{color:var(--nb-marino)}
+.rejilla .fr{font-size:11.5px;font-weight:650;white-space:nowrap}
+.mk{width:44px;height:38px;border:1px solid var(--linea);border-radius:8px;background:#fff;font-size:17px;font-weight:700;color:var(--tinta-2)}
+.mk.s{background:#E6F6F3;border-color:var(--nb-menta);color:#1E6B5A}
+.mk.n{background:#FDEEF2;border-color:var(--nb-rosa);color:#8E1E3C}
+.escala.compacta{grid-template-columns:repeat(5,1fr) 1.4fr}
+.escala.compacta button{min-height:auto;text-align:center;padding:9px 4px}
+.escala.compacta button b{font-size:17px;margin:0}
+.escala.compacta button.na{font-size:11.5px}
+.ancla-sel{font-size:12.5px;color:var(--nb-marino);margin-top:7px;background:var(--papel);padding:6px 10px;border-radius:7px}
+.lnk{background:none;border:0;color:var(--nb-286-75);font-size:12.5px;padding:4px 0;text-decoration:underline}
+.calc{font-size:11.5px;color:var(--tinta-2);margin-left:6px}
+.notaitem.req input{border-color:var(--nb-naranja)}
+@media(max-width:900px){.escala.compacta{grid-template-columns:repeat(5,1fr)}.escala.compacta button.na{grid-column:1/-1}}
 </style>
 
 <header class="top">
@@ -191,8 +217,15 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
         <div><label class="f">Ciudad / zona</label><input type="text" id="c_ciudad"></div>
         <div><label class="f">Ciclo</label><input type="text" id="c_ciclo" placeholder="Ej. Ciclo 4 · 2026"></div>
         <div><label class="f">Tipo de acompañamiento</label>
-          <select id="c_tipo"><option>Coaching de desarrollo</option><option>Evaluación formal de ciclo</option><option>Inducción / entrenamiento</option><option>Plan de mejora</option></select></div>
+          <select id="c_tipo"><option>Coaching de desarrollo</option><option>Evaluación semestral · certificación</option><option>Inducción / entrenamiento</option><option>Plan de mejora</option></select></div>
+        <div style="grid-column:span 2"><label class="f">Modalidad</label>
+          <select id="c_modo">
+            <option value="express">Express — ciclo a ciclo · 13 conductas</option>
+            <option value="completa">Completa — semestral · 24 conductas</option>
+          </select>
+          <div class="hint" id="c_hint"></div></div>
       </div>
+      <div id="borrador-aviso"></div>
       <div class="fila-btn" style="margin-top:18px">
         <button class="btn" id="b-empezar">Abrir jornada</button>
         <span class="sub" id="cab-error" style="color:var(--rojo)"></span>
@@ -257,7 +290,7 @@ td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:650}
 const EQUIPO = ['Ricardo Flores','Kristel Madrid','Fernando Cruz','Osman Carbajal','Elsy Valencia','Fernando Urrutia'];
 const MIN_VISITAS = 4;
 
-const DIMS = [
+const DIMS_COMPLETA = [
 {cod:'A', nom:'Planificación y lectura del Close Up', peso:20,
  desc:'Lo que ya estaba hecho antes de tocar la puerta. El Close Up (auditoría de recetas) es el insumo: sin leerlo no hay forma de construir un objetivo sobre lo que el médico realmente prescribe hoy.',
  items:[
@@ -335,7 +368,33 @@ const DIMS = [
   a:['No reflexiona / se justifica','Reconoce solo si se le señala','Identifica algo mejorable','Identifica el punto correcto sin ayuda','Identifica el punto correcto y propone cómo corregirlo la próxima vez']}
 ]}
 ];
-const TOTAL_ITEMS = DIMS.reduce((s,d)=>s+d.items.length,0);
+
+/* ---------- Modalidad Express (ciclo a ciclo): 13 conductas ----------
+   Conserva las 10 conductas críticas y al menos una por dimensión, así
+   los pesos y el motor de puntaje funcionan igual que en la Completa.   */
+const EXPRESS_IDS = ['A1','A2','B1','C2','C3','C4','D1','D2','D4','F1','F2','G1'];
+const ITEM_EX = {id:'EX', q:'Clarifica la objeción real, responde con evidencia y verifica',
+  obs:'No responde a la primera frase: averigua qué hay detrás, responde con evidencia y cierra el bucle ("¿resuelve eso su inquietud?").',
+  a:['Interrumpe, se defiende o evade la objeción','Responde de inmediato a la objeción superficial, con opinión',
+     'Escucha completa y responde con evidencia; no verifica','Clarifica la objeción real, responde con evidencia y verifica aceptación',
+     'Aísla la objeción real del pretexto, la resuelve, verifica y la usa como plataforma de cierre']};
+const DIMS_EXPRESS = DIMS_COMPLETA.map(d=>({...d,
+  items: d.cod==='E' ? [ITEM_EX] : d.items.filter(it=>EXPRESS_IDS.includes(it.id))}));
+
+const MODOS = {
+  express: {dims:DIMS_EXPRESS,  nom:'Express',  det:'ciclo a ciclo · 13 conductas'},
+  completa:{dims:DIMS_COMPLETA, nom:'Completa', det:'semestral · 24 conductas'}
+};
+const TIPOS_COMPLETA = ['Evaluación semestral · certificación','Plan de mejora'];
+
+let DIMS, ITEMS, TOTAL_ITEMS;
+function usarModalidad(m){
+  DIMS = (MODOS[m]||MODOS.completa).dims;
+  ITEMS = DIMS.flatMap(d=>d.items.map(it=>({...it, dim:d.cod, dimNom:d.nom})));
+  TOTAL_ITEMS = ITEMS.length;
+}
+usarModalidad('completa');
+const esExpress = () => J.modalidad==='express';
 
 const RETOS = {
 A:[{t:'Close Up antes de la ruta',d:'Cada lunes, antes de armar la ruta de la semana, revisa la auditoría de recetas de los médicos que vas a visitar y anota qué prescribe cada uno y de qué marca puedes desplazar.',m:'El GD pide la nota de auditoría de 5 médicos al azar en el próximo acompañamiento. Meta: 5 de 5 con dato y marca a desplazar.'},
@@ -366,7 +425,6 @@ const TIERS = [
  {min:0,    nom:'Requiere intervención', cls:'t4', txt:'Plan de mejora formal, acompañamiento quincenal y revalidación en 60 días.'}
 ];
 const tierDe = p => TIERS.find(t=>p>=t.min);
-const ITEMS = DIMS.flatMap(d=>d.items.map(it=>({...it, dim:d.cod, dimNom:d.nom})));
 
 /* =========================================================
    CONEXIÓN
@@ -386,7 +444,10 @@ async function api(accion, extra={}){
    ESTADO — una sola evaluación por jornada.
    Los médicos son el contexto observado (mínimo 4).
    ========================================================= */
-let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}};
+let J = {cab:{}, medicos:[], nivel:{}, frec:{}, notas:{}, dimActiva:0, cual:{}, modalidad:'completa', marcas:{}};
+let VER_ANCLAS = {}, VER_NOTA = {};
+let ANCLAS_SIEMPRE = false;
+try{ ANCLAS_SIEMPRE = localStorage.getItem('cj-anclas')==='1'; }catch(e){}
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = t => String(t??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
@@ -412,7 +473,8 @@ EQUIPO.forEach(n=>{
   $('#c_mr').insertAdjacentHTML('beforeend',`<option>${n}</option>`);
   $('#h_mr').insertAdjacentHTML('beforeend',`<option>${n}</option>`);
 });
-$('#c_fecha').value = new Date().toISOString().slice(0,10);
+// Fecha local (no UTC): en Centroamérica, después de las 6 p. m. toISOString ya marca el día siguiente.
+{ const h=new Date(); $('#c_fecha').value = new Date(h.getTime()-h.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 
 /* ---------- acceso ---------- */
 $('#b-entrar').onclick = async ()=>{
@@ -423,6 +485,7 @@ $('#b-entrar').onclick = async ()=>{
   try{
     CODIGO = cod; await api('entrar');
     $('#paso-acceso').style.display='none'; $('#paso-cab').style.display='block';
+    sugerirModalidad(true); avisarBorrador();
     cargarHistorial();
   }catch(e){ CODIGO=null; $('#acc-error').textContent = e.message; }
   finally{ $('#b-entrar').disabled=false; }
@@ -435,11 +498,75 @@ $('#b-empezar').onclick = ()=>{
     pais:$('#c_pais').value, ciudad:$('#c_ciudad').value.trim(), ciclo:$('#c_ciclo').value.trim(), tipo:$('#c_tipo').value};
   if(!cab.mr || !cab.evaluador){ $('#cab-error').textContent='Faltan visitador o gerente.'; return; }
   $('#cab-error').textContent=''; J.cab = cab;
+  J.modalidad = $('#c_modo').value; usarModalidad(J.modalidad);
   if(!J.medicos.length) J.medicos = Array.from({length:MIN_VISITAS}, nuevoMedico);
   J.dimActiva = 0;
-  $('#paso-cab').style.display='none'; $('#paso-inst').style.display='block';
-  pintarTodo(); window.scrollTo(0,0);
+  abrirInstrumento();
 };
+
+function abrirInstrumento(){
+  $('#paso-cab').style.display='none'; $('#paso-inst').style.display='block';
+  $('#banner-metodo').innerHTML = esExpress()
+    ? `<b>Express: marca después de cada visita, califica al final.</b> Al salir de cada consultorio marca la rejilla
+       (✓ lo hizo · ✗ no lo hizo · vacío = la situación no se dio). La frecuencia se calcula sola. Al cierre del día
+       califica el <b>nivel del patrón</b>; la evidencia solo es obligatoria en niveles 1–2, nivel 5 o conductas inconsistentes.`
+    : `<b>Completa (semestral). Una sola evaluación para toda la jornada.</b> No califiques la última visita ni el promedio mental de las cuatro:
+       califica el <b>patrón</b> que observaste durante el día. Para cada conducta indica el nivel y con qué frecuencia la sostuvo.`;
+  pintarTodo(); window.scrollTo(0,0);
+}
+
+/* ---------- sugerencia de modalidad ---------- */
+const semestre = f => f ? f.slice(0,4)+(+f.slice(5,7)<=6?'-S1':'-S2') : '';
+function sugerirModalidad(cambioTipo){
+  const mr=$('#c_mr').value, fecha=$('#c_fecha').value, tipo=$('#c_tipo').value;
+  if(cambioTipo) $('#c_modo').value = TIPOS_COMPLETA.includes(tipo) ? 'completa' : 'express';
+  let txt = TIPOS_COMPLETA.includes(tipo)
+    ? `<b>${esc(tipo)}</b> se hace con la Completa.`
+    : 'Ciclo a ciclo se usa la Express.';
+  if(mr && HIST.length){
+    const comp = HIST.filter(h=>h.visitador===mr && h.modalidad==='completa').sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    const enSem = comp.find(h=>semestre(h.fecha)===semestre(fecha));
+    txt += comp.length
+      ? ` Última Completa de ${esc(mr)}: <b>${comp[0].fecha}</b>.${enSem?'':' <b>Este semestre todavía no tiene Completa.</b>'}`
+      : ` ${esc(mr)} no tiene ninguna Completa registrada.`;
+  }
+  $('#c_hint').innerHTML = txt;
+}
+$('#c_tipo').onchange = ()=>sugerirModalidad(true);
+$('#c_mr').addEventListener('change', ()=>sugerirModalidad(false));
+$('#c_fecha').addEventListener('change', ()=>sugerirModalidad(false));
+$('#c_modo').onchange = ()=>sugerirModalidad(false);
+
+/* ---------- borrador local: la Express se llena a lo largo del día ----------
+   Si la tablet se suspende o se recarga la página, la jornada no se pierde.
+   Se borra al guardar en el registro histórico.                              */
+const BKEY = 'cj-borrador-v1';
+function guardarBorrador(){
+  if(!J.cab || !J.cab.mr || $('#paso-inst').style.display==='none' && $('#paso-cierre').style.display==='none') return;
+  const cual = {fuerte:$('#q_fuerte').value, mejora:$('#q_mejora').value, compromiso:$('#q_compromiso').value};
+  try{ localStorage.setItem(BKEY, JSON.stringify({...J, cual, guardado:new Date().toISOString()})); }catch(e){}
+}
+function leerBorrador(){ try{ return JSON.parse(localStorage.getItem(BKEY)||'null'); }catch(e){ return null; } }
+function borrarBorrador(){ try{ localStorage.removeItem(BKEY); }catch(e){} }
+setInterval(guardarBorrador, 4000);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) guardarBorrador(); });
+
+function avisarBorrador(){
+  const b = leerBorrador(); const el = $('#borrador-aviso');
+  if(!b || !b.cab || !b.cab.mr){ el.innerHTML=''; return; }
+  const n = Object.keys(b.nivel||{}).length;
+  el.innerHTML = `<div class="aviso" style="margin:16px 0 0">
+    <b>Jornada en curso sin guardar:</b> ${esc(b.cab.mr)} · ${esc(b.cab.fecha)} · ${MODOS[b.modalidad]?.nom||'Completa'} · ${n} conducta(s) calificada(s).
+    <div class="fila-btn" style="margin-top:8px"><button class="btn" id="b-retomar">Retomar</button>
+    <button class="btn gh" id="b-descartar">Descartar</button></div></div>`;
+  $('#b-retomar').onclick = ()=>{
+    J = {...J, ...b, marcas:b.marcas||{}, modalidad:b.modalidad||'completa'};
+    usarModalidad(J.modalidad);
+    $('#q_fuerte').value=b.cual?.fuerte||''; $('#q_mejora').value=b.cual?.mejora||''; $('#q_compromiso').value=b.cual?.compromiso||'';
+    abrirInstrumento();
+  };
+  $('#b-descartar').onclick = ()=>{ if(confirm('¿Descartar la jornada en curso? No se puede recuperar.')){ borrarBorrador(); avisarBorrador(); } };
+}
 
 /* ---------- médicos observados ---------- */
 function medicosValidos(){ return J.medicos.filter(m=>m.nombre.trim()).length; }
@@ -464,15 +591,62 @@ function pintarMedicos(){
       <button class="btn gh" id="b-addmed">+ Agregar visita</button>
       <span class="contador ${falta?'falta':''}" style="margin-left:0">
         ${falta?`Faltan <b>${falta}</b> visita(s) por registrar`:`<b>${n}</b> visitas registradas`}</span>
-    </div>`;
+    </div>
+    ${esExpress()?rejillaHTML():''}`;
+  $('#panel-medicos').querySelectorAll('.mk').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.id, v=+b.dataset.v;
+    const arr = (J.marcas[id] ||= []);
+    arr[v] = arr[v]==='s' ? 'n' : arr[v]==='n' ? null : 's';
+    aplicarMarcas(id); pintarMedicos(); pintarDim();
+  });
   $('#panel-medicos').querySelectorAll('[data-m]').forEach(el=>{
     const h = e=>{ J.medicos[+el.dataset.m][el.dataset.c] = e.target.value;
       if(el.dataset.c==='nombre') actualizarCierre(); };
-    el.oninput = h; el.onchange = h;
+    el.oninput = h;
+    el.onchange = e=>{ h(e); if(esExpress() && el.dataset.c==='nombre') pintarMedicos(); };
   });
   $('#panel-medicos').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
-    J.medicos.splice(+b.dataset.del,1); pintarMedicos(); actualizarCierre(); });
+    const i = +b.dataset.del;
+    J.medicos.splice(i,1);
+    Object.keys(J.marcas).forEach(id=>{ J.marcas[id].splice(i,1); aplicarMarcas(id); });
+    pintarMedicos(); if(esExpress()) pintarDim(); actualizarCierre(); });
   $('#b-addmed').onclick = ()=>{ J.medicos.push(nuevoMedico()); pintarMedicos(); };
+}
+
+/* ---------- rejilla por visita (Express) ----------
+   ✓ lo hizo · ✗ no lo hizo · vacío = la situación no se dio en esa visita.
+   De ahí sale la frecuencia sin depender de la memoria del final del día. */
+function conteoMarcas(id){
+  const arr = (J.marcas[id]||[]).slice(0, J.medicos.length);
+  const s = arr.filter(x=>x==='s').length, n = arr.filter(x=>x==='n').length;
+  return {s, n, t:s+n};
+}
+function frecDeMarcas(id){
+  const c = conteoMarcas(id);
+  if(!c.t) return null;
+  return c.n===0 ? 'siempre' : c.s===0 ? 'no' : 'inconsistente';
+}
+function aplicarMarcas(id){
+  const f = frecDeMarcas(id);
+  if(J.nivel[id]==='na') return;
+  if(f) J.frec[id] = f; else if(J.nivel[id]===undefined) delete J.frec[id];
+}
+const ETQ_FREC = {siempre:'En todas', inconsistente:'En algunas', no:'En ninguna'};
+function rejillaHTML(){
+  const meds = J.medicos;
+  return `<h2 style="margin-top:22px">Marca rápida por visita</h2>
+    <p class="sub">Al salir de cada consultorio, en el carro: un toque por conducta. ✓ lo hizo · ✗ no lo hizo · vacío = no se dio la situación.</p>
+    <div class="rejilla"><table><thead><tr><th>Conducta</th>
+      ${meds.map((m,i)=>`<th class="v">V${i+1}<small>${esc(m.nombre)||'—'}</small></th>`).join('')}<th class="v">Frecuencia</th></tr></thead><tbody>
+    ${ITEMS.map(it=>{
+      const f = frecDeMarcas(it.id), c = conteoMarcas(it.id);
+      const col = f==='inconsistente'?'var(--nb-naranja)':f==='no'?'var(--rojo)':'var(--verde)';
+      return `<tr><td class="lab"><b>${it.id}</b> ${esc(it.q)}${it.crit?' <span class="pill" style="font-size:10.5px">Crítico</span>':''}</td>
+        ${meds.map((m,i)=>{const v=(J.marcas[it.id]||[])[i];
+          return `<td class="c"><button class="mk ${v||''}" data-id="${it.id}" data-v="${i}" aria-label="${it.id} visita ${i+1}">${v==='s'?'✓':v==='n'?'✗':''}</button></td>`;}).join('')}
+        <td class="c fr" style="color:${f?col:'var(--tinta-2)'}">${f?`${ETQ_FREC[f]}<br><small style="font-weight:400">${c.s}/${c.t}</small>`:'—'}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>`;
 }
 
 /* ---------- avance ---------- */
@@ -484,11 +658,23 @@ function pintarRail(){
     const h = d.items.filter(it=>J.nivel[it.id]!==undefined).length;
     const cls = h===d.items.length?'full':(h?'part':'');
     return `<button data-i="${i}" class="${i===J.dimActiva?'on':''}"><span class="dot ${cls}"></span><span>${d.cod}. ${d.nom}</span></button>`;
-  }).join('') + `<div class="avance">${itemsCalificados()} de ${TOTAL_ITEMS} conductas evaluadas</div>`;
-  $('#rail').querySelectorAll('button').forEach(b=>b.onclick=()=>{J.dimActiva=+b.dataset.i;pintarDim();window.scrollTo(0,0)});
+  }).join('') + `<div class="avance">${itemsCalificados()} de ${TOTAL_ITEMS} conductas evaluadas
+    · <span class="pill ${esExpress()?'mx':'mc'}" style="font-size:10.5px">${MODOS[J.modalidad].nom}</span></div>`
+    + (esExpress()?`<label class="avance" style="display:flex;gap:7px;align-items:center;border:0;cursor:pointer">
+      <input type="checkbox" id="chk-anclas" ${ANCLAS_SIEMPRE?'checked':''}> Mostrar descriptores</label>`:'');
+  $('#rail').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    J.dimActiva=+b.dataset.i;
+    if(esExpress()){ pintarRail(); const el=document.getElementById('dim-'+DIMS[J.dimActiva].cod);
+      if(el) window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-150, behavior:'smooth'}); }
+    else { pintarDim(); window.scrollTo(0,0); }
+  });
+  const ck = $('#chk-anclas');
+  if(ck) ck.onchange = ()=>{ ANCLAS_SIEMPRE = ck.checked;
+    try{ localStorage.setItem('cj-anclas', ANCLAS_SIEMPRE?'1':'0'); }catch(e){} pintarDim(); };
 }
 
 function pintarDim(){
+  if(esExpress()) return pintarExpress();
   const d = DIMS[J.dimActiva];
   const ultima = J.dimActiva===DIMS.length-1;
   $('#dim-cont').innerHTML = `<div class="card">
@@ -503,11 +689,7 @@ function pintarDim(){
     </div></div>`;
   $('#dim-cont').querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{J.dimActiva=+b.dataset.nav;pintarDim();window.scrollTo(0,0)});
   const bc = $('#b-cerrar');
-  if(bc) bc.onclick = ()=>{
-    if(medicosValidos()<MIN_VISITAS){ alert(`Se requieren ${MIN_VISITAS} visitas observadas. Registradas: ${medicosValidos()}.`); return; }
-    if(itemsCalificados()<TOTAL_ITEMS && !confirm(`Faltan ${TOTAL_ITEMS-itemsCalificados()} conductas por evaluar. Se excluyen del puntaje. ¿Continuar?`)) return;
-    $('#paso-inst').style.display='none'; $('#paso-cierre').style.display='block'; window.scrollTo(0,0);
-  };
+  if(bc) bc.onclick = irAFeedback;
   $('#dim-cont').querySelectorAll('.escala button').forEach(b=>b.onclick=()=>{
     J.nivel[b.dataset.id] = b.dataset.v==='na' ? 'na' : +b.dataset.v;
     if(b.dataset.v==='na') delete J.frec[b.dataset.id];
@@ -519,6 +701,72 @@ function pintarDim(){
   $('#dim-cont').querySelectorAll('.notaitem input').forEach(inp=>{
     inp.oninput = e=>J.notas[inp.dataset.id]=e.target.value; });
   pintarRail(); actualizarCierre();
+}
+
+function irAFeedback(){
+  if(medicosValidos()<MIN_VISITAS){ alert(`Se requieren ${MIN_VISITAS} visitas observadas. Registradas: ${medicosValidos()}.`); return; }
+  if(itemsCalificados()<TOTAL_ITEMS && !confirm(`Faltan ${TOTAL_ITEMS-itemsCalificados()} conductas por evaluar. Se excluyen del puntaje. ¿Continuar?`)) return;
+  if(esExpress()){
+    const sin = ITEMS.filter(it=>requiereEvidencia(it.id) && !(J.notas[it.id]||'').trim());
+    if(sin.length && !confirm(`${sin.length} conducta(s) requieren evidencia y no la tienen (${sin.map(x=>x.id).join(', ')}). Un nivel extremo sin frase textual no se puede defender en el feedback. ¿Continuar de todos modos?`)) return;
+  }
+  $('#paso-inst').style.display='none'; $('#paso-cierre').style.display='block'; window.scrollTo(0,0);
+}
+
+/* ---------- Express: una sola pantalla, escala compacta, evidencia por excepción ---------- */
+function requiereEvidencia(id){
+  const n = J.nivel[id], f = J.frec[id];
+  return typeof n==='number' && (n<=2 || n===5 || f==='inconsistente');
+}
+
+function pintarExpress(){
+  $('#dim-cont').innerHTML = DIMS.map(d=>`<div class="card" id="dim-${d.cod}">
+    <div class="dimhead"><span class="cod">${d.cod}</span><h3>${d.nom}</h3><span class="peso">${d.peso}% del puntaje</span></div>
+    ${d.items.map(itemExpressHTML).join('')}</div>`).join('')
+    + `<div class="card"><div class="fila-btn">
+        <button class="btn" id="b-cerrar">Ir a la sesión de feedback →</button>
+        <span class="sub" id="aviso-cierre"></span></div></div>`;
+  const cont = $('#dim-cont');
+  $('#b-cerrar').onclick = irAFeedback;
+  cont.querySelectorAll('.escala button').forEach(b=>b.onclick=()=>{
+    const id = b.dataset.id;
+    J.nivel[id] = b.dataset.v==='na' ? 'na' : +b.dataset.v;
+    if(b.dataset.v==='na') delete J.frec[id];
+    else J.frec[id] = frecDeMarcas(id) || J.frec[id] || 'siempre';
+    pintarExpress();
+  });
+  cont.querySelectorAll('.frec button').forEach(b=>b.onclick=()=>{ J.frec[b.dataset.id] = b.dataset.f; pintarExpress(); });
+  cont.querySelectorAll('[data-anclas]').forEach(b=>b.onclick=()=>{ VER_ANCLAS[b.dataset.anclas]=!VER_ANCLAS[b.dataset.anclas]; pintarExpress(); });
+  cont.querySelectorAll('[data-vernota]').forEach(b=>b.onclick=()=>{ VER_NOTA[b.dataset.vernota]=true; pintarExpress();
+    const inp = cont.querySelector(`.notaitem input[data-id="${b.dataset.vernota}"]`); if(inp) inp.focus(); });
+  cont.querySelectorAll('.notaitem input').forEach(inp=>{ inp.oninput = e=>J.notas[inp.dataset.id]=e.target.value; });
+  pintarRail(); actualizarCierre();
+}
+
+function itemExpressHTML(it){
+  const sel = J.nivel[it.id], f = J.frec[it.id], calc = frecDeMarcas(it.id), c = conteoMarcas(it.id);
+  const anclas = ANCLAS_SIEMPRE || VER_ANCLAS[it.id];
+  const req = requiereEvidencia(it.id), nota = J.notas[it.id]||'';
+  const verNota = req || nota || VER_NOTA[it.id];
+  return `<div class="item ${it.crit?'crit':''}">
+    <div class="q"><b style="color:var(--nb-cielo)">${it.id}</b> ${it.q} ${it.crit?'<span class="pill">Crítico</span>':''}</div>
+    <div class="obs">${it.obs}</div>
+    ${anclas
+      ? `<div class="escala">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}"><b>${k+1}</b>${t}</button>`).join('')}</div>
+         <div class="escala" style="grid-template-columns:1fr;margin-top:6px">
+         <button class="na ${sel==='na'?'on':''}" data-id="${it.id}" data-v="na">No observable en la jornada — excluir del puntaje</button></div>`
+      : `<div class="escala compacta">${it.a.map((t,k)=>`<button data-id="${it.id}" data-v="${k+1}" class="${sel===k+1?'on':''}" title="${esc(t)}"><b>${k+1}</b></button>`).join('')}
+         <button class="na ${sel==='na'?'on':''}" data-id="${it.id}" data-v="na">No observable</button></div>
+         ${typeof sel==='number'?`<div class="ancla-sel"><b>${sel}</b> · ${it.a[sel-1]}</div>`:''}`}
+    ${ANCLAS_SIEMPRE?'':`<button class="lnk" data-anclas="${it.id}">${VER_ANCLAS[it.id]?'Ocultar niveles':'Ver los 5 niveles'}</button>`}
+    ${(sel!==undefined && sel!=='na')?`<div class="frec"><span class="et">¿En cuántas visitas?</span>
+      ${FRECS.map(x=>`<button data-id="${it.id}" data-f="${x.v}" class="${f===x.v?'on':''}" title="${x.d}">${x.t}</button>`).join('')}
+      <span class="calc">${calc?(f===calc?`calculada de la rejilla (${c.s}/${c.t})`:`la rejilla dice "${ETQ_FREC[calc]}" (${c.s}/${c.t}) — ajustada a mano`):'sin marcas en la rejilla'}</span></div>`:''}
+    ${verNota
+      ? `<div class="notaitem ${req&&!nota.trim()?'req':''}"><input type="text" data-id="${it.id}" value="${esc(nota)}"
+          placeholder="${req?'Evidencia requerida: frase textual y en qué visita ocurrió':'Evidencia observada (opcional)'}"></div>`
+      : `<button class="lnk" data-vernota="${it.id}">+ evidencia</button>`}
+  </div>`;
 }
 
 function actualizarCierre(){
@@ -618,8 +866,9 @@ $('#b-calcular').onclick = async ()=>{
       medicos:J.medicos.filter(m=>m.nombre.trim()),
       item_nivel:J.nivel, item_frecuencia:J.frec, notas:J.notas,
       por_dimension:a.porDim, puntaje_global:a.global, consistencia:a.consistencia,
-      deficit_sistematico:a.sistematico, desempeno_erratico:a.erratico, cualitativo:J.cual}});
-    estado={ok:true}; cargarHistorial();
+      deficit_sistematico:a.sistematico, desempeno_erratico:a.erratico,
+      cualitativo:{...J.cual, modalidad:J.modalidad, ...(esExpress()?{marcas:J.marcas}:{})}}});
+    estado={ok:true}; borrarBorrador(); cargarHistorial();
   }catch(e){ estado={ok:false,msg:e.message}; }
   b.disabled=false; b.textContent='Cerrar jornada y ver resultado';
   pintarResultado(a, estado);
@@ -642,7 +891,7 @@ function panelSPIN(a){
     lectura = 'Detecta el problema pero no lo amplía. Es el patrón más común y el más costoso: el médico reconoce la dificultad, no dimensiona lo que le cuesta, y por eso no siente urgencia de cambiar. El trabajo está en Implicación, no en más argumentos de producto.';
   else if(nec && nec.p<=2.5)
     lectura = 'Llega al problema pero enuncia él mismo el beneficio en vez de dejar que lo diga el médico. Un beneficio dicho por el visitador es publicidad; dicho por el médico, es una conclusión propia y se defiende sola.';
-  else if(f[0].p>=4 && imp && imp.p<=3)
+  else if(f.find(x=>x.l==='S')?.p>=4 && imp && imp.p<=3)
     lectura = 'Sondeo cargado hacia Situación. Rackham lo documentó: el exceso de preguntas de situación correlaciona negativamente con el cierre. Hay que investigar antes y llegar a preguntar problemas.';
   else if(f.every(x=>x.p>=4))
     lectura = 'Secuencia SPIN completa y pareja. El sondeo está construyendo la necesidad antes de la presentación, que es exactamente su función.';
@@ -681,6 +930,7 @@ function pintarResultado(a, estado){
           <th style="width:120px">Gerente</th><td>${esc(c.evaluador)}</td></tr>
       <tr><th>Fecha</th><td>${esc(c.fecha)}</td><th>Ciclo</th><td>${esc(c.ciclo)||'—'}</td></tr>
       <tr><th>Plaza</th><td>${esc(c.ciudad)||'—'}, ${esc(c.pais)}</td><th>Tipo</th><td>${esc(c.tipo)}</td></tr>
+      <tr><th>Modalidad</th><td colspan="3"><span class="pill ${esExpress()?'mx':'mc'}">${MODOS[J.modalidad].nom}</span> ${MODOS[J.modalidad].det}</td></tr>
       <tr><th>Visitas observadas</th><td colspan="3">${meds.length} — ${meds.map(m=>esc(m.nombre)+(m.tier_emc?` (${m.tier_emc})`:'')).join(' · ')}</td></tr>
     </tbody></table></div>
 
@@ -782,8 +1032,9 @@ async function cargarHistorial(){
       cons:x.consistencia===null?null:Number(x.consistencia),
       por_dim:x.por_dimension||{}, nivel:x.item_nivel||{}, frec:x.item_frecuencia||{},
       medicos:x.medicos||[], notas_i:x.notas||{},
-      sis:x.deficit_sistematico||[], err:x.desempeno_erratico||[], cual:x.cualitativo||{}}));
-    $('#hist-msg').textContent=''; pintarHistorial();
+      sis:x.deficit_sistematico||[], err:x.desempeno_erratico||[], cual:x.cualitativo||{},
+      modalidad:(x.cualitativo&&x.cualitativo.modalidad)||'completa'}));
+    $('#hist-msg').textContent=''; pintarHistorial(); sugerirModalidad(false);
   }catch(e){ $('#hist-msg').innerHTML=`<span style="color:var(--rojo)">${e.message}</span>`; }
 }
 $('#b-recargar').onclick = cargarHistorial;
@@ -820,7 +1071,7 @@ function panelEvolucion(datos, mr){
   const orden=[...datos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const pri=orden[0], ult=orden[orden.length-1];
   const delta = orden.length>1 ? +(ult.global-pri.global).toFixed(2) : null;
-  const filas = DIMS.map(d=>({d, ini:pri.por_dim?.[d.cod], fin:ult.por_dim?.[d.cod]}))
+  const filas = DIMS_COMPLETA.map(d=>({d, ini:pri.por_dim?.[d.cod], fin:ult.por_dim?.[d.cod]}))
     .filter(x=>typeof x.ini==='number'&&typeof x.fin==='number');
 
   // déficits que persisten entre jornadas: el coaching anterior no funcionó
@@ -841,9 +1092,9 @@ function panelEvolucion(datos, mr){
       <line x1="0" y1="${100-(3.5/5)*100}" x2="100" y2="${100-(3.5/5)*100}" stroke="#BADDF4" stroke-width="0.6" stroke-dasharray="2 2"/>
       ${ptsC?`<polyline points="${ptsC}" fill="none" stroke="#A9A5D1" stroke-width="1.1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/>`:''}
       <polyline points="${pts}" fill="none" stroke="#0033A1" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
-      ${orden.map((h,i)=>`<circle cx="${(i/W)*100}" cy="${100-(h.global/5)*100}" r="1.6" fill="#00A0DF" vector-effect="non-scaling-stroke"/>`).join('')}
+      ${orden.map((h,i)=>`<circle cx="${(i/W)*100}" cy="${100-(h.global/5)*100}" r="${h.modalidad==='completa'?2.4:1.6}" fill="${h.modalidad==='completa'?'#0033A1':'#00A0DF'}" vector-effect="non-scaling-stroke"/>`).join('')}
     </svg>
-    <p class="sub" style="font-size:11.5px;margin-top:4px">Línea sólida: puntaje global por jornada. Línea punteada lavanda: índice de constancia. La horizontal marca el umbral de Competente (3.50).</p>`:''}
+    <p class="sub" style="font-size:11.5px;margin-top:4px">Línea sólida: puntaje global por jornada. Línea punteada lavanda: índice de constancia. La horizontal marca el umbral de Competente (3.50). Punto grande marino: Completa (semestral); punto celeste: Express. Express y Completa no miden exactamente las mismas conductas: compara la tendencia, no décimas.</p>`:''}
 
     <h3 style="font-size:14px;color:var(--nb-marino);margin-top:20px">Primera jornada vs. última</h3>
     <table style="margin-top:8px"><thead><tr><th>Dimensión</th><th>Inicio</th><th>Actual</th><th>Cambio</th></tr></thead><tbody>
@@ -867,7 +1118,7 @@ function tablaHist(datos){
       return `<tr><td>${h.fecha}</td><td>${esc(h.visitador)}<br><small style="color:var(--tinta-2)">${esc(h.ciudad)||''}${h.ciclo?' · '+esc(h.ciclo):''}</small></td>
       <td class="n">${h.n_visitas}</td><td>${esc(h.gerente)}</td>
       <td class="n">${h.global.toFixed(2)}</td><td class="n">${h.cons!==null?h.cons.toFixed(2):'—'}</td>
-      <td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span></td>
+      <td><span class="tier ${t.cls}" style="font-size:11.5px">${t.nom}</span><br><span class="pill ${h.modalidad==='express'?'mx':'mc'}" style="font-size:10.5px;margin-top:4px">${MODOS[h.modalidad]?.nom||'Completa'}</span></td>
       <td><button class="btn gh" style="padding:5px 12px;font-size:12.5px" data-ver="${h.id}">Ver</button></td></tr>`;}).join('')}
     </tbody></table></div>`;
 }
@@ -881,6 +1132,8 @@ async function verJornada(id){
     J.medicos = (j.medicos||[]).map(m=>({nombre:m.nombre||'', especialidad:m.especialidad||'', tier_emc:m.tier_emc||''}));
     J.nivel = j.item_nivel||{}; J.frec = j.item_frecuencia||{}; J.notas = j.notas||{};
     J.cual = j.cualitativo||{};
+    J.modalidad = J.cual.modalidad || 'completa'; J.marcas = J.cual.marcas || {};
+    usarModalidad(J.modalidad);
     $$('.tabs button').forEach(x=>x.classList.remove('on'));
     $$('.tabs button')[0].classList.add('on');
     $$('.vista').forEach(v=>v.classList.remove('on'));
@@ -895,11 +1148,11 @@ $('#b-csv').onclick = ()=>{
   const f=$('#h_mr').value;
   const datos = f ? HIST.filter(h=>h.visitador===f) : HIST;
   if(!datos.length) return;
-  const cols=['fecha','visitador','gerente','pais','ciudad','ciclo','tipo','n_visitas','global','consistencia',
-    ...DIMS.map(d=>'dim_'+d.cod),'deficit_sistematico','inconsistente','patron_solido','a_cambiar','compromisos'];
+  const cols=['fecha','visitador','gerente','pais','ciudad','ciclo','tipo','modalidad','n_visitas','global','consistencia',
+    ...DIMS_COMPLETA.map(d=>'dim_'+d.cod),'deficit_sistematico','inconsistente','patron_solido','a_cambiar','compromisos'];
   const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
-  const filas=datos.map(h=>[h.fecha,h.visitador,h.gerente,h.pais,h.ciudad,h.ciclo,h.tipo,h.n_visitas,h.global,h.cons,
-    ...DIMS.map(d=>h.por_dim?.[d.cod]??''),
+  const filas=datos.map(h=>[h.fecha,h.visitador,h.gerente,h.pais,h.ciudad,h.ciclo,h.tipo,h.modalidad,h.n_visitas,h.global,h.cons,
+    ...DIMS_COMPLETA.map(d=>h.por_dim?.[d.cod]??''),
     (h.sis||[]).map(x=>x.id).join(' '), (h.err||[]).map(x=>x.id).join(' '),
     h.cual?.fuerte,h.cual?.mejora,h.cual?.compromiso].map(q).join(','));
   const csv='\ufeff'+cols.join(',')+'\n'+filas.join('\n');
@@ -911,6 +1164,17 @@ $('#b-csv').onclick = ()=>{
 
 /* ---------- método ---------- */
 $('#v-guia').innerHTML = `
+<div class="card"><h2>Dos modalidades: Express y Completa</h2>
+<p class="sub" style="margin-top:8px"><b>Express — ciclo a ciclo.</b> ${DIMS_EXPRESS.reduce((s,d)=>s+d.items.length,0)} conductas: las 10 críticas más una por cada dimensión que no tenía crítica (B1, objeción fusionada y G1). Después de cada visita se marca una rejilla de ✓/✗ y la frecuencia se calcula sola. Al cierre se califica el nivel con escala compacta; la evidencia es obligatoria solo en niveles 1–2, nivel 5 o conductas inconsistentes.</p>
+<p class="sub" style="margin-top:10px"><b>Completa — semestral.</b> Las 24 conductas con sus anclas completas. Se usa en la evaluación semestral que acompaña la certificación de ventas y en los planes de mejora.</p>
+<table style="margin-top:14px"><thead><tr><th style="width:60px">Dim.</th><th>En la Express</th><th>Solo en la Completa</th></tr></thead><tbody>
+${DIMS_COMPLETA.map((d,i)=>`<tr><td><b>${d.cod}</b> · ${d.peso}%</td>
+<td>${DIMS_EXPRESS[i].items.map(it=>`<b>${it.id}</b> ${it.q}`).join('<br>')}</td>
+<td style="color:var(--tinta-2)">${d.items.filter(it=>!DIMS_EXPRESS[i].items.some(x=>x.id===it.id)).map(it=>`<b>${it.id}</b> ${it.q}`).join('<br>')||'—'}</td></tr>`).join('')}
+</tbody></table>
+<p class="sub" style="margin-top:12px">Los pesos por dimensión son los mismos en las dos. Aun así, un 3.8 en Express y un 3.8 en Completa no miden exactamente lo mismo: en el historial compara la tendencia de cada modalidad, no décimas entre ellas.</p>
+</div>
+
 <div class="card"><h2>Por qué la jornada y no la visita</h2>
 <p class="sub" style="margin-top:8px">Una sola visita no distingue una habilidad de una casualidad. El visitador puede hacer un sondeo impecable porque el médico estaba de buen humor, o fallar el cierre porque entró una emergencia. Con cuatro visitas consecutivas del mismo día aparece el patrón, y el patrón sí es entrenable.</p>
 <p class="sub" style="margin-top:12px"><b>Se llena una sola evaluación por jornada</b>, no una por visita. El gerente observa las cuatro visitas y al final califica el comportamiento del día. La herramienta <b>no permite cerrar la jornada con menos de ${MIN_VISITAS} visitas registradas</b>: el botón lo impide y el servidor también lo rechaza.</p>
@@ -958,14 +1222,14 @@ $('#v-guia').innerHTML = `
 <ol style="margin:12px 0 0;padding-left:20px;font-size:14px;line-height:1.75">
 <li><b>Cuatro visitas consecutivas, mismo día, mismo visitador.</b> Si se interrumpe la jornada, no hay sesión de feedback.</li>
 <li><b>El gerente no participa.</b> Se presenta y guarda silencio. Si rescata la visita, esa visita no cuenta.</li>
-<li><b>Toma notas al salir de cada visita</b>, aunque la evaluación se llene al final. La memoria colapsa las visitas entre sí y solo sobrevive la última.</li>
+<li><b>Registra al salir de cada visita</b>, aunque el nivel se califique al final: en la Express, con la rejilla de marcas; en la Completa, con notas. La memoria colapsa las visitas entre sí y solo sobrevive la última.</li>
 <li><b>Evidencia obligatoria en las conductas bajas.</b> Un 2 sin frase textual no se puede defender ni corregir.</li>
 <li><b>El feedback es sobre el patrón</b>, nunca sobre la última visita — que es la que más pesa en la memoria y la que menos representa.</li>
 </ol></div>
 
 <div class="card"><h2>Cómo se calcula</h2>
 <p class="sub" style="margin-top:8px">Cada conducta se puntúa de 1 a 5 contra anclas conductuales, sobre la jornada completa. La dimensión es el promedio de sus conductas; el global, el promedio ponderado de las dimensiones.</p>
-<div style="margin-top:14px">${DIMS.map(d=>`<div class="barra"><div>${d.cod}. ${d.nom}</div>
+<div style="margin-top:14px">${DIMS_COMPLETA.map(d=>`<div class="barra"><div>${d.cod}. ${d.nom}</div>
   <div class="pista"><div class="fill" style="width:${d.peso*4}%"></div></div><div class="val">${d.peso}%</div></div>`).join('')}</div>
 <p class="sub" style="margin-top:14px"><b>Sondeo, argumentación y cierre suman 60%</b>: son las fases que predicen conversión a prescripción. <b>Planificación pesa 20%</b> porque sin lectura del Close Up no hay objetivo real, solo buenas intenciones.</p>
 <p class="sub" style="margin-top:10px"><b>Índice de constancia:</b> proporción de conductas marcadas "en todas las visitas". 1.00 significa ejecución uniforme. Bajo 0.65, el promedio global deja de ser representativo.</p>
